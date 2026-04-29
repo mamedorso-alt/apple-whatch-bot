@@ -26,3 +26,28 @@
 "reports.button.week" = "Неделя";
 "reports.section.today" = "Отчет за сегодня";
 "reports.section.week" = "Отчет за неделю";
+
+"onboarding.title" = "Онбординг";
+"onboarding.header" = "Apple Watch Productivity Assistant";
+"onboarding.text.value" = "Мы анализируем агрегаты активности, сна и нагрузки, чтобы формировать короткие утренние и вечерние отчеты.";
+"onboarding.text.integration" = "Дневные агрегаты HealthKit обрабатываются и связываются с вашими инсайтами в Telegram.";
+"onboarding.text.privacy" = "Конфиденциальность: отправляются только агрегированные дневные метрики.";
+
+"health_access.title" = "Доступ к Health";
+"health_access.prompt" = "Разрешите доступ к данным HealthKit:";
+"health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- heartRate\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
+"health_access.button.allow" = "Разрешить доступ";
+"health_access.button.granted" = "Доступ получен";
+
+"telegram_link.title" = "Привязка Telegram";
+"telegram_link.step1" = "1) Нажмите кнопку для получения кода";
+"telegram_link.step2" = "2) Отправьте в Telegram команду: /link CODE";
+"telegram_link.step3" = "3) После привязки используйте /today и /week";
+"telegram_link.button.get_code" = "Получить код привязки";
+"telegram_link.code" = "Ваш код: %@";
+
+"error.network_offline" = "Нет подключения к интернету. Проверьте сеть и повторите.";
+"error.request_timeout" = "Превышено время ожидания запроса. Попробуйте еще раз.";
+"error.auth_invalid" = "Ошибка авторизации. Перепривяжите токен устройства и повторите.";
+"error.server_unavailable" = "Сервер временно недоступен. Попробуйте позже.";
+"error.generic" = "Что-то пошло не так. Попробуйте еще раз.";

@@ -5,19 +5,19 @@ struct TelegramLinkView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("1) Нажмите кнопку для получения кода")
-            Text("2) Отправьте в Telegram команду: /link CODE")
-            Text("3) После привязки используйте /today и /week")
+            Text(String(localized: "telegram_link.step1"))
+            Text(String(localized: "telegram_link.step2"))
+            Text(String(localized: "telegram_link.step3"))
                 .foregroundStyle(.secondary)
 
-            Button("Получить код привязки") {
+            Button(String(localized: "telegram_link.button.get_code")) {
                 Task { await viewModel.fetchLinkCode() }
             }
             .buttonStyle(.borderedProminent)
             .disabled(viewModel.isLoading)
 
             if viewModel.linkCode.isEmpty == false {
-                Text("Ваш код: \(viewModel.linkCode)")
+                Text(String(format: String(localized: "telegram_link.code"), viewModel.linkCode))
                     .font(.title3)
                     .bold()
             }
@@ -28,6 +28,6 @@ struct TelegramLinkView: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("Telegram Link")
+        .navigationTitle(String(localized: "telegram_link.title"))
     }
 }

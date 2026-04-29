@@ -96,8 +96,32 @@ final class AppViewModel: ObservableObject {
         do {
             try await operation()
         } catch {
-            errorMessage = error.localizedDescription
+            errorMessage = mapErrorMessage(error)
         }
         isLoading = false
+    }
+
+    private func mapErrorMessage(_ error: Error) -> String {
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost:
+                return String(localized: "error.network_offline")
+            case .timedOut:
+                return String(localized: "error.request_timeout")
+            default:
+                return String(localized: "error.generic")
+            }
+        }
+
+        let nsError = error as NSError
+        if nsError.domain == "ApiClient" {
+            if nsError.code == 401 {
+                return String(localized: "error.auth_invalid")
+            }
+            if nsError.code >= 500 {
+                return String(localized: "error.server_unavailable")
+            }
+        }
+        return String(localized: "error.generic")
     }
 }

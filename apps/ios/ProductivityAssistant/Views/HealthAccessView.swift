@@ -5,12 +5,12 @@ struct HealthAccessView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Разрешите доступ к HealthKit данным:")
-            Text("- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- heartRate\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType")
+            Text(String(localized: "health_access.prompt"))
+            Text(String(localized: "health_access.list"))
                 .font(.footnote)
                 .foregroundStyle(.secondary)
 
-            Button(viewModel.healthAccessGranted ? "Access Granted" : "Разрешить доступ") {
+            Button(viewModel.healthAccessGranted ? String(localized: "health_access.button.granted") : String(localized: "health_access.button.allow")) {
                 Task { await viewModel.requestHealthAccess() }
             }
             .buttonStyle(.borderedProminent)
@@ -23,6 +23,6 @@ struct HealthAccessView: View {
             Spacer()
         }
         .padding()
-        .navigationTitle("Health Access")
+        .navigationTitle(String(localized: "health_access.title"))
     }
 }

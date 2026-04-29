@@ -26,3 +26,28 @@
 "reports.button.week" = "Week";
 "reports.section.today" = "Today report";
 "reports.section.week" = "Week report";
+
+"onboarding.title" = "Onboarding";
+"onboarding.header" = "Apple Watch Productivity Assistant";
+"onboarding.text.value" = "We analyze activity, sleep, and load aggregates to generate short morning and evening reports.";
+"onboarding.text.integration" = "Daily HealthKit aggregates are processed and connected to your Telegram insights.";
+"onboarding.text.privacy" = "Privacy: only aggregated daily metrics are sent.";
+
+"health_access.title" = "Health Access";
+"health_access.prompt" = "Allow access to HealthKit data:";
+"health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- heartRate\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
+"health_access.button.allow" = "Allow Access";
+"health_access.button.granted" = "Access Granted";
+
+"telegram_link.title" = "Telegram Link";
+"telegram_link.step1" = "1) Tap button to get a code";
+"telegram_link.step2" = "2) Send command to Telegram: /link CODE";
+"telegram_link.step3" = "3) After linking, use /today and /week";
+"telegram_link.button.get_code" = "Get link code";
+"telegram_link.code" = "Your code: %@";
+
+"error.network_offline" = "No internet connection. Check network and try again.";
+"error.request_timeout" = "Request timed out. Please try again.";
+"error.auth_invalid" = "Authorization failed. Re-link device token and retry.";
+"error.server_unavailable" = "Server is temporarily unavailable. Try again later.";
+"error.generic" = "Something went wrong. Please try again.";
