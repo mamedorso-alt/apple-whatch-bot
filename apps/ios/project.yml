@@ -17,7 +17,7 @@ targets:
       path: ProductivityAssistant/Info.plist
       properties:
         UILaunchScreen: {}
-        API_BASE_URL: http://localhost:8000
+        API_BASE_URL: https://applewhatchbotforrustam.website
         NSHealthShareUsageDescription: App reads Health data to build daily productivity insights and Telegram reports.
         NSHealthUpdateUsageDescription: Reserved for future features. Current MVP uses read-only HealthKit access.
     settings:
