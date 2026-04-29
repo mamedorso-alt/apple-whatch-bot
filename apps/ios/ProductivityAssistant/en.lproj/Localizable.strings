@@ -1,0 +1,28 @@
+"nav.productivity_mvp" = "Productivity MVP";
+"nav.onboarding" = "1. Onboarding";
+"nav.health_access" = "2. Health Access";
+"nav.telegram_link" = "3. Telegram Link";
+"nav.sync_status" = "4. Sync Status";
+"nav.reports" = "5. Reports";
+
+"sync.title" = "Sync Status";
+"sync.button.sync_now" = "Sync now";
+"sync.button.refresh_status" = "Refresh status";
+"sync.last_sync" = "Last sync: %@";
+"sync.last_sync_never" = "Last sync: never";
+"sync.linked" = "Linked to Telegram: %@";
+"sync.language" = "Language: %@";
+"sync.timezone" = "Timezone: %@";
+"sync.server_last_sync_date" = "Server last sync date: %@";
+"sync.today_score_ready" = "Today score ready: %@";
+"common.yes" = "yes";
+"common.no" = "no";
+"common.na" = "n/a";
+
+"reports.title" = "Reports";
+"reports.hint.link_first" = "Link Telegram first in Telegram Link screen to receive bot reports.";
+"reports.hint.no_today_score" = "No today score yet. Run sync in Sync Status screen and try again.";
+"reports.button.today" = "Today";
+"reports.button.week" = "Week";
+"reports.section.today" = "Today report";
+"reports.section.week" = "Week report";

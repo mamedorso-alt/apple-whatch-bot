@@ -1,0 +1,28 @@
+"nav.productivity_mvp" = "Productivity MVP";
+"nav.onboarding" = "1. Онбординг";
+"nav.health_access" = "2. Доступ к Health";
+"nav.telegram_link" = "3. Привязка Telegram";
+"nav.sync_status" = "4. Статус синка";
+"nav.reports" = "5. Отчеты";
+
+"sync.title" = "Статус синхронизации";
+"sync.button.sync_now" = "Синхронизировать";
+"sync.button.refresh_status" = "Обновить статус";
+"sync.last_sync" = "Последний sync: %@";
+"sync.last_sync_never" = "Последний sync: никогда";
+"sync.linked" = "Telegram привязан: %@";
+"sync.language" = "Язык: %@";
+"sync.timezone" = "Часовой пояс: %@";
+"sync.server_last_sync_date" = "Дата sync на сервере: %@";
+"sync.today_score_ready" = "Сегодняшний score готов: %@";
+"common.yes" = "да";
+"common.no" = "нет";
+"common.na" = "н/д";
+
+"reports.title" = "Отчеты";
+"reports.hint.link_first" = "Сначала привяжите Telegram на экране Telegram Link, чтобы получать отчеты бота.";
+"reports.hint.no_today_score" = "Сегодняшний score еще не готов. Запустите sync на экране статуса и повторите.";
+"reports.button.today" = "Сегодня";
+"reports.button.week" = "Неделя";
+"reports.section.today" = "Отчет за сегодня";
+"reports.section.week" = "Отчет за неделю";
