@@ -60,7 +60,7 @@ jobs:
 
   ios-testflight:
     needs: changes
-    if: needs.changes.outputs.ios == 'true' && secrets.APP_STORE_CONNECT_API_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_API_KEY_BASE64 != ''
+    if: needs.changes.outputs.ios == 'true'
     runs-on: macos-latest
     defaults:
       run:
