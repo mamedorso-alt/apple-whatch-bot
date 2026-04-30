@@ -5,6 +5,10 @@
 "nav.sync_status" = "4. Sync Status";
 "nav.reports" = "5. Reports";
 "nav.weekly_charts" = "6. Weekly Charts";
+"tab.dashboard" = "Dashboard";
+"tab.activity" = "Activity";
+"tab.coach" = "Coach";
+"tab.profile" = "Profile";
 
 "sync.title" = "Sync Status";
 "sync.button.sync_now" = "Sync now";
@@ -37,6 +41,22 @@
 "weekly_charts.empty" = "No activity data yet. Allow Health access and sync.";
 "weekly_charts.section.steps" = "Steps per day";
 "weekly_charts.section.kcal" = "Active kcal per day";
+
+"dashboard.card.today" = "Today Status";
+"dashboard.card.recovery" = "Recovery Snapshot";
+"dashboard.card.weekly_preview" = "Weekly Preview";
+"dashboard.kpi.connection" = "Connection";
+"dashboard.kpi.score" = "Today Score";
+"dashboard.kpi.avg_steps" = "Avg Steps";
+"dashboard.kpi.avg_kcal" = "Avg Active kcal";
+"dashboard.kpi.value.linked" = "Linked";
+"dashboard.kpi.value.not_linked" = "Not linked";
+"dashboard.kpi.value.ready" = "Ready";
+"dashboard.kpi.value.missing" = "Missing";
+"dashboard.status.ready" = "Daily summary is ready";
+"dashboard.status.waiting" = "Waiting for daily sync";
+"profile.card.status" = "Profile Status";
+"profile.card.quick_actions" = "Quick Actions";
 
 "onboarding.title" = "Onboarding";
 "onboarding.header" = "Apple Watch Productivity Assistant";

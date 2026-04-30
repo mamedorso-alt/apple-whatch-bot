@@ -4,28 +4,34 @@ struct RootContentView: View {
     @ObservedObject var viewModel: AppViewModel
 
     var body: some View {
-        NavigationStack {
-            List {
-                NavigationLink(LocalizedStringKey("nav.onboarding")) {
-                    OnboardingView()
-                }
-                NavigationLink(LocalizedStringKey("nav.health_access")) {
-                    HealthAccessView(viewModel: viewModel)
-                }
-                NavigationLink(LocalizedStringKey("nav.telegram_link")) {
-                    TelegramLinkView(viewModel: viewModel)
-                }
-                NavigationLink(LocalizedStringKey("nav.sync_status")) {
-                    SyncStatusView(viewModel: viewModel)
-                }
-                NavigationLink(LocalizedStringKey("nav.reports")) {
-                    ReportsView(viewModel: viewModel)
-                }
-                NavigationLink(LocalizedStringKey("nav.weekly_charts")) {
-                    WeeklyActivityChartsView(viewModel: viewModel)
-                }
+        TabView {
+            NavigationStack {
+                DashboardView(viewModel: viewModel)
             }
-            .navigationTitle(LocalizedStringKey("nav.productivity_mvp"))
+            .tabItem {
+                Label(String(localized: "tab.dashboard"), systemImage: "square.grid.2x2.fill")
+            }
+
+            NavigationStack {
+                WeeklyActivityChartsView(viewModel: viewModel)
+            }
+            .tabItem {
+                Label(String(localized: "tab.activity"), systemImage: "chart.bar.xaxis")
+            }
+
+            NavigationStack {
+                ReportsView(viewModel: viewModel)
+            }
+            .tabItem {
+                Label(String(localized: "tab.coach"), systemImage: "brain.head.profile")
+            }
+
+            NavigationStack {
+                ProfileHubView(viewModel: viewModel)
+            }
+            .tabItem {
+                Label(String(localized: "tab.profile"), systemImage: "person.circle.fill")
+            }
         }
     }
 }

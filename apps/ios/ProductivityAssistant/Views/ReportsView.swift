@@ -6,15 +6,17 @@ struct ReportsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 12) {
-                if viewModel.isLinked == false {
-                    Text(String(localized: "reports.hint.link_first"))
-                        .font(.footnote)
-                        .foregroundStyle(.orange)
-                }
-                if viewModel.hasTodayScore == false {
-                    Text(String(localized: "reports.hint.no_today_score"))
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
+                DashboardCard(title: String(localized: "reports.title")) {
+                    if viewModel.isLinked == false {
+                        Text(String(localized: "reports.hint.link_first"))
+                            .font(.footnote)
+                            .foregroundStyle(AppTheme.warning)
+                    }
+                    if viewModel.hasTodayScore == false {
+                        Text(String(localized: "reports.hint.no_today_score"))
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
                 }
 
                 HStack(spacing: 10) {
@@ -22,6 +24,7 @@ struct ReportsView: View {
                         Task { await viewModel.fetchTodayReport() }
                     }
                     .buttonStyle(.borderedProminent)
+                    .tint(AppTheme.accent)
                     .disabled(viewModel.isLoading)
 
                     Button(String(localized: "reports.button.week")) {
@@ -32,17 +35,19 @@ struct ReportsView: View {
                 }
 
                 if viewModel.todayReport.isEmpty == false {
-                    Text(String(localized: "reports.section.today"))
-                        .font(.headline)
-                    Text(viewModel.todayReport)
-                        .textSelection(.enabled)
+                    DashboardCard(title: String(localized: "reports.section.today")) {
+                        Text(viewModel.todayReport)
+                            .foregroundStyle(.white.opacity(0.9))
+                            .textSelection(.enabled)
+                    }
                 }
 
                 if viewModel.weekReport.isEmpty == false {
-                    Text(String(localized: "reports.section.week"))
-                        .font(.headline)
-                    Text(viewModel.weekReport)
-                        .textSelection(.enabled)
+                    DashboardCard(title: String(localized: "reports.section.week")) {
+                        Text(viewModel.weekReport)
+                            .foregroundStyle(.white.opacity(0.9))
+                            .textSelection(.enabled)
+                    }
                 }
 
                 if let error = viewModel.errorMessage {
@@ -51,6 +56,7 @@ struct ReportsView: View {
             }
             .padding()
         }
+        .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(String(localized: "reports.title"))
         .task {
             await viewModel.refreshReportStatus()

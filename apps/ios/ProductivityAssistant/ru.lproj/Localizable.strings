@@ -5,6 +5,10 @@
 "nav.sync_status" = "4. Статус синка";
 "nav.reports" = "5. Отчеты";
 "nav.weekly_charts" = "6. Графики за неделю";
+"tab.dashboard" = "Дашборд";
+"tab.activity" = "Активность";
+"tab.coach" = "Коуч";
+"tab.profile" = "Профиль";
 
 "sync.title" = "Статус синхронизации";
 "sync.button.sync_now" = "Синхронизировать";
@@ -37,6 +41,22 @@
 "weekly_charts.empty" = "Пока нет данных активности. Дайте доступ к Health и выполните sync.";
 "weekly_charts.section.steps" = "Шаги по дням";
 "weekly_charts.section.kcal" = "Активные ккал по дням";
+
+"dashboard.card.today" = "Статус дня";
+"dashboard.card.recovery" = "Срез восстановления";
+"dashboard.card.weekly_preview" = "Превью недели";
+"dashboard.kpi.connection" = "Подключение";
+"dashboard.kpi.score" = "Оценка за сегодня";
+"dashboard.kpi.avg_steps" = "Средние шаги";
+"dashboard.kpi.avg_kcal" = "Средние активные ккал";
+"dashboard.kpi.value.linked" = "Связано";
+"dashboard.kpi.value.not_linked" = "Не связано";
+"dashboard.kpi.value.ready" = "Готово";
+"dashboard.kpi.value.missing" = "Нет данных";
+"dashboard.status.ready" = "Дневной отчет готов";
+"dashboard.status.waiting" = "Ожидается синхронизация";
+"profile.card.status" = "Статус профиля";
+"profile.card.quick_actions" = "Быстрые действия";
 
 "onboarding.title" = "Онбординг";
 "onboarding.header" = "Apple Watch Productivity Assistant";

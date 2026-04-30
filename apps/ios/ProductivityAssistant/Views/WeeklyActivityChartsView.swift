@@ -21,58 +21,64 @@ struct WeeklyActivityChartsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                Picker(String(localized: "weekly_charts.range.title"), selection: $viewModel.weeklyActivityRangeDays) {
-                    ForEach(RangeOption.allCases) { option in
-                        Text(rangeLabel(option))
-                            .tag(option.rawValue)
+                DashboardCard(title: String(localized: "weekly_charts.range.title")) {
+                    Picker(String(localized: "weekly_charts.range.title"), selection: $viewModel.weeklyActivityRangeDays) {
+                        ForEach(RangeOption.allCases) { option in
+                            Text(rangeLabel(option))
+                                .tag(option.rawValue)
+                        }
                     }
-                }
-                .pickerStyle(.segmented)
-                .onChange(of: viewModel.weeklyActivityRangeDays) { _, _ in
-                    Task { await viewModel.fetchWeeklyActivity() }
+                    .pickerStyle(.segmented)
+                    .onChange(of: viewModel.weeklyActivityRangeDays) { _, _ in
+                        Task { await viewModel.fetchWeeklyActivity() }
+                    }
                 }
 
                 Button(String(localized: "weekly_charts.button.refresh")) {
                     Task { await viewModel.fetchWeeklyActivity() }
                 }
                 .buttonStyle(.borderedProminent)
+                .tint(AppTheme.accent)
                 .disabled(viewModel.isLoading)
 
                 if viewModel.weeklyActivity.isEmpty {
-                    Text(String(localized: "weekly_charts.empty"))
-                        .foregroundStyle(.secondary)
+                    DashboardCard(title: String(localized: "weekly_charts.title")) {
+                        Text(String(localized: "weekly_charts.empty"))
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.7))
+                    }
                 } else {
-                    Text(String(localized: "weekly_charts.section.steps"))
-                        .font(.headline)
-                    Chart(viewModel.weeklyActivity) { point in
-                        BarMark(
-                            x: .value("Day", dayLabel(point.date)),
-                            y: .value("Steps", point.steps)
-                        )
-                        .foregroundStyle(.blue.gradient)
-                        .annotation(position: .top) {
-                            Text(Int(point.steps), format: .number)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                    DashboardCard(title: String(localized: "weekly_charts.section.steps")) {
+                        Chart(viewModel.weeklyActivity) { point in
+                            BarMark(
+                                x: .value("Day", dayLabel(point.date)),
+                                y: .value("Steps", point.steps)
+                            )
+                            .foregroundStyle(AppTheme.accent.gradient)
+                            .annotation(position: .top) {
+                                Text(Int(point.steps), format: .number)
+                                    .font(.caption2)
+                                    .foregroundStyle(.white.opacity(0.65))
+                            }
                         }
+                        .frame(height: 220)
                     }
-                    .frame(height: 220)
 
-                    Text(String(localized: "weekly_charts.section.kcal"))
-                        .font(.headline)
-                    Chart(viewModel.weeklyActivity) { point in
-                        BarMark(
-                            x: .value("Day", dayLabel(point.date)),
-                            y: .value("Active kcal", point.activeKcal)
-                        )
-                        .foregroundStyle(.orange.gradient)
-                        .annotation(position: .top) {
-                            Text(Int(point.activeKcal), format: .number)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
+                    DashboardCard(title: String(localized: "weekly_charts.section.kcal")) {
+                        Chart(viewModel.weeklyActivity) { point in
+                            BarMark(
+                                x: .value("Day", dayLabel(point.date)),
+                                y: .value("Active kcal", point.activeKcal)
+                            )
+                            .foregroundStyle(AppTheme.warning.gradient)
+                            .annotation(position: .top) {
+                                Text(Int(point.activeKcal), format: .number)
+                                    .font(.caption2)
+                                    .foregroundStyle(.white.opacity(0.65))
+                            }
                         }
+                        .frame(height: 220)
                     }
-                    .frame(height: 220)
                 }
 
                 if let error = viewModel.errorMessage {
@@ -82,6 +88,7 @@ struct WeeklyActivityChartsView: View {
             }
             .padding()
         }
+        .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(String(localized: "weekly_charts.title"))
         .task {
             if viewModel.weeklyActivity.isEmpty {
