@@ -3,14 +3,23 @@ default_platform(:ios)
 platform :ios do
   desc "Build and upload app to TestFlight"
   lane :beta do
-    api_key_content = ENV.fetch("APP_STORE_CONNECT_API_KEY_BASE64")
+    require "base64"
+
+    api_key_content = if ENV["APP_STORE_CONNECT_API_KEY_P8"] && !ENV["APP_STORE_CONNECT_API_KEY_P8"].empty?
+      ENV.fetch("APP_STORE_CONNECT_API_KEY_P8")
+    else
+      ENV.fetch("APP_STORE_CONNECT_API_KEY_BASE64")
+    end
+    api_key_content = api_key_content.strip
+    api_key_content = api_key_content.gsub("\\n", "\n")
     key_is_base64 = !api_key_content.include?("BEGIN PRIVATE KEY")
+    api_key_content = Base64.decode64(api_key_content) if key_is_base64
 
     api_key = app_store_connect_api_key(
       key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
       issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
       key_content: api_key_content,
-      is_key_content_base64: key_is_base64
+      is_key_content_base64: false
     )
 
     build_app(

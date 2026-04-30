@@ -25,7 +25,8 @@ This project now includes automatic release workflow: `.github/workflows/release
 ### iOS TestFlight secrets
 - `APP_STORE_CONNECT_API_KEY_ID`
 - `APP_STORE_CONNECT_ISSUER_ID`
-- `APP_STORE_CONNECT_API_KEY_BASE64` (content of `.p8` key, base64-encoded)
+- `APP_STORE_CONNECT_API_KEY_BASE64` (content of `.p8` key, base64-encoded), or
+- `APP_STORE_CONNECT_API_KEY_P8` (raw `.p8` private key text; preferred if base64 issues occur)
 - `IOS_BUNDLE_IDENTIFIER` (example: `com.rustam.productivityassistant`)
 - `IOS_TEAM_ID` (your Apple Team ID)
 

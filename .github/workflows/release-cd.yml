@@ -56,7 +56,15 @@ jobs:
 
       - name: Verify backend health
         run: |
-          curl -fSs "${{ secrets.PROD_APP_BASE_URL }}/health"
+          for i in 1 2 3 4 5 6; do
+            if curl -fSs "${{ secrets.PROD_APP_BASE_URL }}/health"; then
+              exit 0
+            fi
+            echo "Health check failed (attempt $i), retrying..."
+            sleep 5
+          done
+          echo "Backend health check failed after retries"
+          exit 1
 
   ios-testflight:
     needs: changes
@@ -82,6 +90,7 @@ jobs:
           APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
           APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          APP_STORE_CONNECT_API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
           IOS_BUNDLE_IDENTIFIER: ${{ secrets.IOS_BUNDLE_IDENTIFIER }}
           IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
         run: fastlane ios beta
