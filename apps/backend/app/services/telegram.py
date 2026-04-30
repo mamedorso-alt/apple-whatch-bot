@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 import httpx
 from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -58,13 +59,26 @@ def link_telegram(db: Session, telegram_user_id: int, raw_code: str) -> str:
     if user is None:
         return msg("ru", "link_invalid")
 
+    # Prevent reassignment when this Telegram account is already bound elsewhere.
+    already_bound = (
+        db.query(User)
+        .filter(User.telegram_user_id == telegram_user_id, User.id != user.id)
+        .first()
+    )
+    if already_bound:
+        return msg(user.language, "already_linked_other")
+
     if user.telegram_user_id and user.telegram_user_id != telegram_user_id:
         return msg(user.language, "already_linked_other")
 
     user.telegram_user_id = telegram_user_id
     user.is_linked = True
     link_code.used_at = now
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        return msg(user.language, "already_linked_other")
     return msg(user.language, "link_success")
 
 
