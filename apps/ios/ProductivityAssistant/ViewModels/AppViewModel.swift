@@ -15,6 +15,8 @@ final class AppViewModel: ObservableObject {
     @Published var profileTimezone = "Asia/Baku"
     @Published var lastSyncDateFromServer: String?
     @Published var hasTodayScore = false
+    @Published var weeklyActivity: [WeeklyActivityPoint] = []
+    @Published var weeklyActivityRangeDays = 7
 
     let syncManager = SyncManager()
 
@@ -67,6 +69,12 @@ final class AppViewModel: ObservableObject {
         await run {
             let token = try await ensureToken()
             try await refreshStatusInternal(apiToken: token)
+        }
+    }
+
+    func fetchWeeklyActivity() async {
+        await run {
+            weeklyActivity = try await syncManager.fetchWeeklyActivity(days: weeklyActivityRangeDays)
         }
     }
 

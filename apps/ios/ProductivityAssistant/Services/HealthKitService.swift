@@ -63,6 +63,32 @@ final class HealthKitService {
         )
     }
 
+    func weeklyActivity(days: Int = 7, endingAt day: Date = Date(), timezone: TimeZone = .current) async throws -> [WeeklyActivityPoint] {
+        let safeDays = max(1, days)
+        let calendar = Calendar.current
+        let endDayStart = calendar.startOfDay(for: day)
+        _ = timezone
+
+        var points: [WeeklyActivityPoint] = []
+        for offset in stride(from: safeDays - 1, through: 0, by: -1) {
+            guard let currentDay = calendar.date(byAdding: .day, value: -offset, to: endDayStart),
+                  let nextDay = calendar.date(byAdding: .day, value: 1, to: currentDay) else {
+                continue
+            }
+
+            let steps = try await sumQuantity(.stepCount, unit: HKUnit.count(), start: currentDay, end: nextDay)
+            let kcal = try await sumQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: currentDay, end: nextDay)
+            points.append(
+                WeeklyActivityPoint(
+                    date: currentDay,
+                    steps: steps,
+                    activeKcal: kcal
+                )
+            )
+        }
+        return points
+    }
+
     private func sumQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async throws -> Double {
         guard let type = HKObjectType.quantityType(forIdentifier: id) else { return 0 }
         return try await withCheckedThrowingContinuation { continuation in

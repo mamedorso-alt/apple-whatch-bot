@@ -1,0 +1,107 @@
+import Charts
+import SwiftUI
+
+struct WeeklyActivityChartsView: View {
+    private enum RangeOption: Int, CaseIterable, Identifiable {
+        case week = 7
+        case twoWeeks = 14
+        case month = 30
+
+        var id: Int { rawValue }
+    }
+
+    @ObservedObject var viewModel: AppViewModel
+
+    private let dayFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.setLocalizedDateFormatFromTemplate("EEE")
+        return formatter
+    }()
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 16) {
+                Picker(String(localized: "weekly_charts.range.title"), selection: $viewModel.weeklyActivityRangeDays) {
+                    ForEach(RangeOption.allCases) { option in
+                        Text(rangeLabel(option))
+                            .tag(option.rawValue)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .onChange(of: viewModel.weeklyActivityRangeDays) { _, _ in
+                    Task { await viewModel.fetchWeeklyActivity() }
+                }
+
+                Button(String(localized: "weekly_charts.button.refresh")) {
+                    Task { await viewModel.fetchWeeklyActivity() }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(viewModel.isLoading)
+
+                if viewModel.weeklyActivity.isEmpty {
+                    Text(String(localized: "weekly_charts.empty"))
+                        .foregroundStyle(.secondary)
+                } else {
+                    Text(String(localized: "weekly_charts.section.steps"))
+                        .font(.headline)
+                    Chart(viewModel.weeklyActivity) { point in
+                        BarMark(
+                            x: .value("Day", dayLabel(point.date)),
+                            y: .value("Steps", point.steps)
+                        )
+                        .foregroundStyle(.blue.gradient)
+                        .annotation(position: .top) {
+                            Text(Int(point.steps), format: .number)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(height: 220)
+
+                    Text(String(localized: "weekly_charts.section.kcal"))
+                        .font(.headline)
+                    Chart(viewModel.weeklyActivity) { point in
+                        BarMark(
+                            x: .value("Day", dayLabel(point.date)),
+                            y: .value("Active kcal", point.activeKcal)
+                        )
+                        .foregroundStyle(.orange.gradient)
+                        .annotation(position: .top) {
+                            Text(Int(point.activeKcal), format: .number)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(height: 220)
+                }
+
+                if let error = viewModel.errorMessage {
+                    Text(error)
+                        .foregroundStyle(.red)
+                }
+            }
+            .padding()
+        }
+        .navigationTitle(String(localized: "weekly_charts.title"))
+        .task {
+            if viewModel.weeklyActivity.isEmpty {
+                await viewModel.fetchWeeklyActivity()
+            }
+        }
+    }
+
+    private func dayLabel(_ date: Date) -> String {
+        dayFormatter.string(from: date)
+    }
+
+    private func rangeLabel(_ option: RangeOption) -> String {
+        switch option {
+        case .week:
+            return String(localized: "weekly_charts.range.7")
+        case .twoWeeks:
+            return String(localized: "weekly_charts.range.14")
+        case .month:
+            return String(localized: "weekly_charts.range.30")
+        }
+    }
+}

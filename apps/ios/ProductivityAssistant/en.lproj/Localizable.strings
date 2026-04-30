@@ -4,6 +4,7 @@
 "nav.telegram_link" = "3. Telegram Link";
 "nav.sync_status" = "4. Sync Status";
 "nav.reports" = "5. Reports";
+"nav.weekly_charts" = "6. Weekly Charts";
 
 "sync.title" = "Sync Status";
 "sync.button.sync_now" = "Sync now";
@@ -26,6 +27,16 @@
 "reports.button.week" = "Week";
 "reports.section.today" = "Today report";
 "reports.section.week" = "Week report";
+
+"weekly_charts.title" = "Weekly Activity";
+"weekly_charts.range.title" = "Range";
+"weekly_charts.range.7" = "7 days";
+"weekly_charts.range.14" = "14 days";
+"weekly_charts.range.30" = "30 days";
+"weekly_charts.button.refresh" = "Refresh weekly data";
+"weekly_charts.empty" = "No activity data yet. Allow Health access and sync.";
+"weekly_charts.section.steps" = "Steps per day";
+"weekly_charts.section.kcal" = "Active kcal per day";
 
 "onboarding.title" = "Onboarding";
 "onboarding.header" = "Apple Watch Productivity Assistant";

@@ -31,4 +31,8 @@ final class SyncManager {
     func requestHealthAccess() async throws {
         try await healthKitService.requestAuthorization()
     }
+
+    func fetchWeeklyActivity(days: Int) async throws -> [WeeklyActivityPoint] {
+        try await healthKitService.weeklyActivity(days: days)
+    }
 }

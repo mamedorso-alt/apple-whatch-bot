@@ -21,6 +21,9 @@ struct RootContentView: View {
                 NavigationLink(LocalizedStringKey("nav.reports")) {
                     ReportsView(viewModel: viewModel)
                 }
+                NavigationLink(LocalizedStringKey("nav.weekly_charts")) {
+                    WeeklyActivityChartsView(viewModel: viewModel)
+                }
             }
             .navigationTitle(LocalizedStringKey("nav.productivity_mvp"))
         }

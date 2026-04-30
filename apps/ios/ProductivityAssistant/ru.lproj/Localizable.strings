@@ -4,6 +4,7 @@
 "nav.telegram_link" = "3. Привязка Telegram";
 "nav.sync_status" = "4. Статус синка";
 "nav.reports" = "5. Отчеты";
+"nav.weekly_charts" = "6. Графики за неделю";
 
 "sync.title" = "Статус синхронизации";
 "sync.button.sync_now" = "Синхронизировать";
@@ -26,6 +27,16 @@
 "reports.button.week" = "Неделя";
 "reports.section.today" = "Отчет за сегодня";
 "reports.section.week" = "Отчет за неделю";
+
+"weekly_charts.title" = "Недельная активность";
+"weekly_charts.range.title" = "Период";
+"weekly_charts.range.7" = "7 дней";
+"weekly_charts.range.14" = "14 дней";
+"weekly_charts.range.30" = "30 дней";
+"weekly_charts.button.refresh" = "Обновить недельные данные";
+"weekly_charts.empty" = "Пока нет данных активности. Дайте доступ к Health и выполните sync.";
+"weekly_charts.section.steps" = "Шаги по дням";
+"weekly_charts.section.kcal" = "Активные ккал по дням";
 
 "onboarding.title" = "Онбординг";
 "onboarding.header" = "Apple Watch Productivity Assistant";
