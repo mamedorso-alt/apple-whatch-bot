@@ -8,7 +8,7 @@ from app.db.session import get_db
 from app.schemas.link import LinkCodeResponse
 from app.services.linking import generate_link_code
 from app.services.telegram import (
-    build_command_reply,
+    build_command_reply_async,
     send_telegram_message,
 )
 
@@ -45,7 +45,7 @@ async def telegram_webhook(
     if not text or chat_id is None or telegram_user_id is None:
         return {"status": "ignored"}
 
-    reply = build_command_reply(db, telegram_user_id, text)
+    reply = await build_command_reply_async(db, telegram_user_id, text)
 
     await send_telegram_message(chat_id=chat_id, text=reply)
     return {"status": "ok"}

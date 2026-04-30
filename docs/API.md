@@ -62,6 +62,7 @@ Supported commands:
 - `/lang ru|en`
 - `/today`
 - `/week`
+- `/coach`
 
 ## Reports API (for iOS app)
 ### `GET /v1/reports/today`
@@ -97,6 +98,17 @@ Response:
   "timezone": "Asia/Baku",
   "last_sync_date": "2026-04-28",
   "has_today_score": true
+}
+```
+
+### `GET /v1/reports/coach`
+Headers: `Authorization: Bearer <api_token>`
+
+Response:
+```json
+{
+  "date": "2026-04-29",
+  "report": "AI Coach ... personalized recommendation text ..."
 }
 ```
 

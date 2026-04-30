@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.db.models import LinkCode, User
 from app.i18n.telegram import msg
+from app.services.ai_coach import compose_ai_coach_report
 from app.services.reports import compose_today_report, compose_week_report
 
 settings = get_settings()
@@ -81,6 +82,13 @@ def week_report_for_telegram(db: Session, telegram_user_id: int) -> str:
     return compose_week_report(db, user, datetime.now(timezone.utc).date())
 
 
+async def coach_report_for_telegram(db: Session, telegram_user_id: int) -> str:
+    user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+    if not user:
+        return msg("ru", "link_usage")
+    return await compose_ai_coach_report(db, user, datetime.now(timezone.utc).date())
+
+
 def build_command_reply(db: Session, telegram_user_id: int, text: str) -> str:
     user_lang = language_for_telegram(db, telegram_user_id)
     chunks = text.split(maxsplit=1)
@@ -102,3 +110,11 @@ def build_command_reply(db: Session, telegram_user_id: int, text: str) -> str:
     if command == "/week":
         return week_report_for_telegram(db, telegram_user_id)
     return msg(user_lang, "unknown")
+
+
+async def build_command_reply_async(db: Session, telegram_user_id: int, text: str) -> str:
+    chunks = text.split(maxsplit=1)
+    command = chunks[0].lower() if chunks else ""
+    if command == "/coach":
+        return await coach_report_for_telegram(db, telegram_user_id)
+    return build_command_reply(db, telegram_user_id, text)

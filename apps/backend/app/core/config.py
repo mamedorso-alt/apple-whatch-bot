@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     link_code_ttl_min: int = 15
     scheduler_enabled: bool = False
     scheduler_interval_min: int = 30
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-3-5-sonnet-latest"
+    anthropic_timeout_sec: int = 20
+    ai_coach_context_days: int = 7
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 

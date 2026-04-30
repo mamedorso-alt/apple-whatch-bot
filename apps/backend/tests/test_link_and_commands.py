@@ -31,3 +31,9 @@ def test_unknown_command():
     db = FakeSession()
     reply = build_command_reply(db, telegram_user_id=777, text="/something")
     assert "неизвест" in reply.lower()
+
+
+def test_help_contains_coach_command():
+    db = FakeSession()
+    reply = build_command_reply(db, telegram_user_id=777, text="/help")
+    assert "/coach" in reply

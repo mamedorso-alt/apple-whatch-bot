@@ -3,7 +3,7 @@ MESSAGES = {
         "start": (
             "Привет! Я помогу с отчетами продуктивности.\n"
             "Привяжите аккаунт через /link CODE из iOS приложения.\n"
-            "Команды: /today /week /lang ru|en /help"
+            "Команды: /today /week /coach /lang ru|en /help"
         ),
         "help": (
             "Доступные команды:\n"
@@ -11,6 +11,7 @@ MESSAGES = {
             "/link CODE - привязать Telegram к приложению\n"
             "/today - отчет за сегодня\n"
             "/week - отчет за 7 дней\n"
+            "/coach - персональная AI-рекомендация\n"
             "/lang ru|en - сменить язык\n"
             "/help - помощь"
         ),
@@ -30,7 +31,7 @@ MESSAGES = {
         "start": (
             "Hi! I help with productivity reports.\n"
             "Link your account using /link CODE from the iOS app.\n"
-            "Commands: /today /week /lang ru|en /help"
+            "Commands: /today /week /coach /lang ru|en /help"
         ),
         "help": (
             "Available commands:\n"
@@ -38,6 +39,7 @@ MESSAGES = {
             "/link CODE - link Telegram with app account\n"
             "/today - today's report\n"
             "/week - 7-day report\n"
+            "/coach - personal AI recommendation\n"
             "/lang ru|en - switch language\n"
             "/help - help"
         ),

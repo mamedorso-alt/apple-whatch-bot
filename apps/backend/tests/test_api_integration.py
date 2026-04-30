@@ -42,7 +42,12 @@ def test_end_to_end_api_flow(monkeypatch):
     async def fake_send_message(*_args, **_kwargs):
         return None
 
+    async def fake_ai_coach_report(*_args, **_kwargs):
+        return "AI Coach test response"
+
     monkeypatch.setattr("app.api.routes.telegram.send_telegram_message", fake_send_message)
+    monkeypatch.setattr("app.api.routes.reports.compose_ai_coach_report", fake_ai_coach_report)
+    monkeypatch.setattr("app.services.telegram.compose_ai_coach_report", fake_ai_coach_report)
 
     client = TestClient(app)
 
@@ -96,6 +101,21 @@ def test_end_to_end_api_flow(monkeypatch):
     today = client.post("/v1/telegram/webhook", json=today_update, headers=webhook_headers)
     assert today.status_code == 200
     assert today.json()["status"] == "ok"
+
+    coach = client.get("/v1/reports/coach", headers=headers)
+    assert coach.status_code == 200
+    assert "AI Coach" in coach.json()["report"]
+
+    coach_update = {
+        "message": {
+            "text": "/coach",
+            "chat": {"id": 12345},
+            "from": {"id": 777},
+        }
+    }
+    coach_webhook = client.post("/v1/telegram/webhook", json=coach_update, headers=webhook_headers)
+    assert coach_webhook.status_code == 200
+    assert coach_webhook.json()["status"] == "ok"
 
     status = client.get("/v1/reports/status", headers=headers)
     assert status.status_code == 200

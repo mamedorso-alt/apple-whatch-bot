@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_current_user
 from app.db.models import DailyMetric, DailyScore, User
 from app.db.session import get_db
+from app.services.ai_coach import compose_ai_coach_report
 from app.services.reports import compose_today_report, compose_week_report
 
 router = APIRouter(prefix="/v1/reports", tags=["reports"])
@@ -29,6 +30,16 @@ def get_week_report(
     today = datetime.now(timezone.utc).date()
     report = compose_week_report(db, current_user, today)
     return {"end_date": str(today), "report": report}
+
+
+@router.get("/coach")
+async def get_ai_coach_report(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> dict[str, str]:
+    today = datetime.now(timezone.utc).date()
+    report = await compose_ai_coach_report(db, current_user, today)
+    return {"date": str(today), "report": report}
 
 
 @router.get("/status")

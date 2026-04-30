@@ -11,8 +11,9 @@
   - `POST /v1/health/daily` (idempotent upsert)
   - `GET /v1/reports/today`
   - `GET /v1/reports/week`
+  - `GET /v1/reports/coach` (AI coach, fallback если LLM недоступен)
   - `GET /v1/reports/status`
-  - `POST /v1/telegram/webhook` (`/start`, `/help`, `/link CODE`, `/lang`, `/today`, `/week`)
+  - `POST /v1/telegram/webhook` (`/start`, `/help`, `/link CODE`, `/lang`, `/today`, `/week`, `/coach`)
   - `POST /internal/run-scheduled` (manual scheduler trigger)
 - APScheduler worker (interval-based auto trigger)
 - Scoring v1:
@@ -28,6 +29,7 @@
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_WEBHOOK_SECRET`
    - `JWT_SECRET`
+  - `ANTHROPIC_API_KEY` (опционально; без него работает rule-based fallback коуч)
 3. Поднимите сервисы:
    - `docker compose up --build -d`
 4. Прогоните миграции:
