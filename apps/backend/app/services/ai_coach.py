@@ -12,6 +12,30 @@ from app.db.models import DailyMetric, DailyScore, User
 settings = get_settings()
 
 
+def _clean_generated_text(text: str) -> str:
+    cleaned = (text or "").strip()
+    if not cleaned:
+        return cleaned
+
+    # Remove accidental fenced wrappers from model responses.
+    if cleaned.startswith("```") and cleaned.endswith("```"):
+        cleaned = cleaned.strip("`").strip()
+
+    lines = [line.rstrip() for line in cleaned.splitlines()]
+    compact: list[str] = []
+    prev_blank = False
+    for raw in lines:
+        line = raw.strip()
+        if line in {"---", "—", "___"}:
+            continue
+        is_blank = not line
+        if is_blank and prev_blank:
+            continue
+        compact.append(raw if not is_blank else "")
+        prev_blank = is_blank
+    return "\n".join(compact).strip()
+
+
 def _fallback_coach_text(lang: str, today_score: int | None, avg_score: int | None, avg_sleep_min: int | None, avg_steps: int | None) -> str:
     if lang == "en":
         score_line = f"Today score: {today_score}/100." if today_score is not None else "Today score is not available yet."
@@ -101,7 +125,14 @@ async def _generate_with_anthropic(lang: str, context: dict[str, Any]) -> str:
 
     system_prompt = (
         "You are a productivity coach. Use only provided aggregated health and score data. "
-        "Do not provide medical diagnosis. Keep answer short and actionable: 1 short summary + 2-3 actions."
+        "Do not provide medical diagnosis. Keep response clean, compact and practical.\n"
+        "Always follow this format exactly:\n"
+        "1) Title line with one emoji.\n"
+        "2) One short overall assessment sentence.\n"
+        "3) Block 'Что хорошо' / 'What went well' with 2-3 bullet points.\n"
+        "4) Block 'Что улучшить' / 'What to improve' with 2-3 bullet points.\n"
+        "5) Block '3 шага на завтра' / '3 steps for tomorrow' with numbered 1..3 actions.\n"
+        "No markdown separators like --- and no long intro/outro text."
     )
     user_prompt = (
         f"Language: {'English' if lang == 'en' else 'Russian'}\n"
@@ -131,7 +162,7 @@ async def _generate_with_anthropic(lang: str, context: dict[str, Any]) -> str:
             if block.get("type") == "text":
                 text = (block.get("text") or "").strip()
                 if text:
-                    return text
+                    return _clean_generated_text(text)
     raise RuntimeError("Empty response from Anthropic")
 
 
@@ -142,7 +173,8 @@ async def _generate_chat_with_anthropic(lang: str, context: dict[str, Any], user
     system_prompt = (
         "You are a concise productivity coach. "
         "Use only provided health/score context and user message. "
-        "Do not provide medical diagnosis. Give practical, concrete advice."
+        "Do not provide medical diagnosis. Give practical, concrete advice.\n"
+        "Formatting rules: short paragraphs, clean bullets when useful, no markdown separators (---), no noisy symbols."
     )
     user_prompt = (
         f"Language: {'English' if lang == 'en' else 'Russian'}\n"
@@ -173,7 +205,7 @@ async def _generate_chat_with_anthropic(lang: str, context: dict[str, Any], user
             if block.get("type") == "text":
                 text = (block.get("text") or "").strip()
                 if text:
-                    return text
+                    return _clean_generated_text(text)
     raise RuntimeError("Empty response from Anthropic")
 
 
