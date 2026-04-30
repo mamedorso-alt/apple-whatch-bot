@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -14,6 +16,7 @@ from app.services.telegram import (
 
 router = APIRouter(prefix="/v1/telegram", tags=["telegram"])
 settings = get_settings()
+logger = logging.getLogger(__name__)
 
 
 @router.post("/link-code", response_model=LinkCodeResponse)
@@ -45,7 +48,11 @@ async def telegram_webhook(
     if not text or chat_id is None or telegram_user_id is None:
         return {"status": "ignored"}
 
-    reply = await build_command_reply_async(db, telegram_user_id, text)
-
-    await send_telegram_message(chat_id=chat_id, text=reply)
-    return {"status": "ok"}
+    try:
+        reply = await build_command_reply_async(db, telegram_user_id, text)
+        await send_telegram_message(chat_id=chat_id, text=reply)
+        return {"status": "ok"}
+    except Exception:
+        # Never return 5xx to Telegram, otherwise one bad update blocks the queue.
+        logger.exception("Telegram webhook processing failed")
+        return {"status": "failed"}
