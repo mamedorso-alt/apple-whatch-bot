@@ -10,8 +10,9 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.db.models import LinkCode, User
 from app.i18n.telegram import msg
-from app.services.ai_coach import compose_ai_coach_report
+from app.services.ai_coach import compose_ai_chat_reply, compose_ai_coach_report
 from app.services.reports import compose_today_report, compose_week_report
+from app.services.voice import transcribe_telegram_media
 
 settings = get_settings()
 
@@ -60,10 +61,9 @@ def link_telegram(db: Session, telegram_user_id: int, raw_code: str) -> str:
         return msg("ru", "link_invalid")
 
     # Prevent reassignment when this Telegram account is already bound elsewhere.
-    already_bound = (
-        db.query(User)
-        .filter(User.telegram_user_id == telegram_user_id, User.id != user.id)
-        .first()
+    already_bound = next(
+        (u for u in db.query(User).all() if u.telegram_user_id == telegram_user_id and u.id != user.id),
+        None,
     )
     if already_bound:
         return msg(user.language, "already_linked_other")
@@ -103,6 +103,42 @@ async def coach_report_for_telegram(db: Session, telegram_user_id: int) -> str:
     return await compose_ai_coach_report(db, user, datetime.now(timezone.utc).date())
 
 
+async def coach_chat_for_telegram(db: Session, telegram_user_id: int, user_message: str) -> str:
+    user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+    if not user:
+        return msg("ru", "link_usage")
+    return await compose_ai_chat_reply(db, user, user_message, datetime.now(timezone.utc).date())
+
+
+async def extract_incoming_text_or_reply(
+    db: Session,
+    telegram_user_id: int,
+    message: dict,
+) -> tuple[str | None, str | None]:
+    text = (message.get("text") or "").strip()
+    if text:
+        return text, None
+
+    voice = message.get("voice") or {}
+    audio = message.get("audio") or {}
+    file_id = (voice.get("file_id") or audio.get("file_id") or "").strip()
+    if not file_id:
+        return None, None
+
+    lang = language_for_telegram(db, telegram_user_id)
+    try:
+        transcript = await transcribe_telegram_media(file_id=file_id, fallback_filename="voice.ogg")
+    except RuntimeError as exc:
+        code = str(exc)
+        if code == "VOICE_NOT_CONFIGURED":
+            return None, msg(lang, "voice_not_configured")
+        return None, msg(lang, "voice_transcription_failed")
+    except Exception:
+        return None, msg(lang, "voice_transcription_failed")
+
+    return transcript, None
+
+
 def build_command_reply(db: Session, telegram_user_id: int, text: str) -> str:
     user_lang = language_for_telegram(db, telegram_user_id)
     chunks = text.split(maxsplit=1)
@@ -129,6 +165,15 @@ def build_command_reply(db: Session, telegram_user_id: int, text: str) -> str:
 async def build_command_reply_async(db: Session, telegram_user_id: int, text: str) -> str:
     chunks = text.split(maxsplit=1)
     command = chunks[0].lower() if chunks else ""
+    arg = chunks[1].strip() if len(chunks) > 1 else ""
     if command == "/coach":
+        if arg:
+            return await coach_chat_for_telegram(db, telegram_user_id, arg)
         return await coach_report_for_telegram(db, telegram_user_id)
+    if command == "/ask":
+        if not arg:
+            return msg(language_for_telegram(db, telegram_user_id), "ask_usage")
+        return await coach_chat_for_telegram(db, telegram_user_id, arg)
+    if text.strip() and not text.strip().startswith("/"):
+        return await coach_chat_for_telegram(db, telegram_user_id, text.strip())
     return build_command_reply(db, telegram_user_id, text)

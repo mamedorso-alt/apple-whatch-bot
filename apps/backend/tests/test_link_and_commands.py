@@ -37,3 +37,4 @@ def test_help_contains_coach_command():
     db = FakeSession()
     reply = build_command_reply(db, telegram_user_id=777, text="/help")
     assert "/coach" in reply
+    assert "/ask" in reply

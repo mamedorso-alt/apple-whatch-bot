@@ -45,9 +45,17 @@ def test_end_to_end_api_flow(monkeypatch):
     async def fake_ai_coach_report(*_args, **_kwargs):
         return "AI Coach test response"
 
+    async def fake_ai_chat_reply(*_args, **_kwargs):
+        return "AI Chat test response"
+
+    async def fake_transcribe_telegram_media(*_args, **_kwargs):
+        return "Как восстановиться после плохого сна?"
+
     monkeypatch.setattr("app.api.routes.telegram.send_telegram_message", fake_send_message)
     monkeypatch.setattr("app.api.routes.reports.compose_ai_coach_report", fake_ai_coach_report)
     monkeypatch.setattr("app.services.telegram.compose_ai_coach_report", fake_ai_coach_report)
+    monkeypatch.setattr("app.services.telegram.compose_ai_chat_reply", fake_ai_chat_reply)
+    monkeypatch.setattr("app.services.telegram.transcribe_telegram_media", fake_transcribe_telegram_media)
 
     client = TestClient(app)
 
@@ -116,6 +124,39 @@ def test_end_to_end_api_flow(monkeypatch):
     coach_webhook = client.post("/v1/telegram/webhook", json=coach_update, headers=webhook_headers)
     assert coach_webhook.status_code == 200
     assert coach_webhook.json()["status"] == "ok"
+
+    coach_chat_update = {
+        "message": {
+            "text": "/coach Как улучшить фокус завтра?",
+            "chat": {"id": 12345},
+            "from": {"id": 777},
+        }
+    }
+    coach_chat_webhook = client.post("/v1/telegram/webhook", json=coach_chat_update, headers=webhook_headers)
+    assert coach_chat_webhook.status_code == 200
+    assert coach_chat_webhook.json()["status"] == "ok"
+
+    plain_text_update = {
+        "message": {
+            "text": "Что делать чтобы меньше уставать вечером?",
+            "chat": {"id": 12345},
+            "from": {"id": 777},
+        }
+    }
+    plain_text_webhook = client.post("/v1/telegram/webhook", json=plain_text_update, headers=webhook_headers)
+    assert plain_text_webhook.status_code == 200
+    assert plain_text_webhook.json()["status"] == "ok"
+
+    voice_update = {
+        "message": {
+            "voice": {"file_id": "voice-file-id-1"},
+            "chat": {"id": 12345},
+            "from": {"id": 777},
+        }
+    }
+    voice_webhook = client.post("/v1/telegram/webhook", json=voice_update, headers=webhook_headers)
+    assert voice_webhook.status_code == 200
+    assert voice_webhook.json()["status"] == "ok"
 
     status = client.get("/v1/reports/status", headers=headers)
     assert status.status_code == 200

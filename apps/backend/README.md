@@ -13,7 +13,7 @@
   - `GET /v1/reports/week`
   - `GET /v1/reports/coach` (AI coach, fallback если LLM недоступен)
   - `GET /v1/reports/status`
-  - `POST /v1/telegram/webhook` (`/start`, `/help`, `/link CODE`, `/lang`, `/today`, `/week`, `/coach`)
+- `POST /v1/telegram/webhook` (`/start`, `/help`, `/link CODE`, `/lang`, `/today`, `/week`, `/coach`, `/ask`) + free-text AI chat + voice-to-text (if configured)
   - `POST /internal/run-scheduled` (manual scheduler trigger)
 - APScheduler worker (interval-based auto trigger)
 - Scoring v1:
@@ -30,6 +30,7 @@
    - `TELEGRAM_WEBHOOK_SECRET`
    - `JWT_SECRET`
   - `ANTHROPIC_API_KEY` (опционально; без него работает rule-based fallback коуч)
+  - `OPENAI_API_KEY` (опционально; нужен для распознавания голосовых сообщений Telegram)
 3. Поднимите сервисы:
    - `docker compose up --build -d`
 4. Прогоните миграции:

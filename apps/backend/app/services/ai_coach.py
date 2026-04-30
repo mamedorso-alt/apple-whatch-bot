@@ -135,6 +135,48 @@ async def _generate_with_anthropic(lang: str, context: dict[str, Any]) -> str:
     raise RuntimeError("Empty response from Anthropic")
 
 
+async def _generate_chat_with_anthropic(lang: str, context: dict[str, Any], user_message: str) -> str:
+    if not settings.anthropic_api_key:
+        raise RuntimeError("Anthropic API key is not configured")
+
+    system_prompt = (
+        "You are a concise productivity coach. "
+        "Use only provided health/score context and user message. "
+        "Do not provide medical diagnosis. Give practical, concrete advice."
+    )
+    user_prompt = (
+        f"Language: {'English' if lang == 'en' else 'Russian'}\n"
+        f"Date: {context['today']}\n"
+        f"Context JSON:\n{context}\n\n"
+        f"User message:\n{user_message}"
+    )
+
+    async with httpx.AsyncClient(timeout=settings.anthropic_timeout_sec) as client:
+        response = await client.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": settings.anthropic_api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": settings.anthropic_model,
+                "max_tokens": 450,
+                "system": system_prompt,
+                "messages": [{"role": "user", "content": user_prompt}],
+            },
+        )
+        response.raise_for_status()
+        body = response.json()
+        content = body.get("content", [])
+        for block in content:
+            if block.get("type") == "text":
+                text = (block.get("text") or "").strip()
+                if text:
+                    return text
+    raise RuntimeError("Empty response from Anthropic")
+
+
 async def compose_ai_coach_report(db: Session, user: User, day: date | None = None) -> str:
     # day kept for future extensibility, current MVP always uses latest rolling context.
     _ = day
@@ -151,3 +193,22 @@ async def compose_ai_coach_report(db: Session, user: User, day: date | None = No
             avg_sleep_min=context["avg_sleep_min"],
             avg_steps=context["avg_steps"],
         )
+
+
+async def compose_ai_chat_reply(db: Session, user: User, user_message: str, day: date | None = None) -> str:
+    _ = day
+    context = _collect_context(db, user)
+    lang = user.language
+    try:
+        return await _generate_chat_with_anthropic(lang=lang, context=context, user_message=user_message)
+    except Exception:
+        base = _fallback_coach_text(
+            lang=lang,
+            today_score=context["today_score"],
+            avg_score=context["avg_score"],
+            avg_sleep_min=context["avg_sleep_min"],
+            avg_steps=context["avg_steps"],
+        )
+        if lang == "en":
+            return f"{base}\n\nI could not run full AI reasoning right now, but I can still help. Your question: {user_message}"
+        return f"{base}\n\nСейчас не удалось запустить полный AI-разбор, но я могу помочь. Ваш вопрос: {user_message}"

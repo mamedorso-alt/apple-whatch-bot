@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-3-5-sonnet-latest"
     anthropic_timeout_sec: int = 20
     ai_coach_context_days: int = 7
+    openai_api_key: str = ""
+    openai_stt_model: str = "whisper-1"
+    openai_stt_timeout_sec: int = 30
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
