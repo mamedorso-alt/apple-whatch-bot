@@ -1,0 +1,87 @@
+name: release-cd
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      ios: ${{ steps.filter.outputs.ios }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - "apps/backend/**"
+              - ".github/workflows/release-cd.yml"
+            ios:
+              - "apps/ios/**"
+              - ".github/workflows/release-cd.yml"
+
+  deploy-backend:
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.PROD_SSH_PRIVATE_KEY }}
+
+      - name: Add server to known_hosts
+        run: |
+          mkdir -p ~/.ssh
+          ssh-keyscan -H "${{ secrets.PROD_SSH_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy backend on server
+        run: |
+          ssh "${{ secrets.PROD_SSH_USER }}@${{ secrets.PROD_SSH_HOST }}" "
+            set -e
+            cd /opt/apple-whatch-bot
+            git fetch origin main
+            git checkout main
+            git pull --ff-only origin main
+            cd apps/backend
+            docker compose up --build -d
+            docker compose exec -T api alembic upgrade head
+          "
+
+      - name: Verify backend health
+        run: |
+          curl -fSs "${{ secrets.PROD_APP_BASE_URL }}/health"
+
+  ios-testflight:
+    needs: changes
+    if: needs.changes.outputs.ios == 'true' && secrets.APP_STORE_CONNECT_API_KEY_ID != '' && secrets.APP_STORE_CONNECT_ISSUER_ID != '' && secrets.APP_STORE_CONNECT_API_KEY_BASE64 != ''
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: apps/ios
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.2"
+          bundler-cache: false
+
+      - name: Install fastlane
+        run: gem install fastlane
+
+      - name: Upload iOS build to TestFlight
+        env:
+          APP_STORE_CONNECT_API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+          APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          APP_STORE_CONNECT_API_KEY_BASE64: ${{ secrets.APP_STORE_CONNECT_API_KEY_BASE64 }}
+          IOS_BUNDLE_IDENTIFIER: ${{ secrets.IOS_BUNDLE_IDENTIFIER }}
+          IOS_TEAM_ID: ${{ secrets.IOS_TEAM_ID }}
+        run: fastlane ios beta

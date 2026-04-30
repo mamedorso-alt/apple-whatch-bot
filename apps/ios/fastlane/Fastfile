@@ -1,0 +1,32 @@
+default_platform(:ios)
+
+platform :ios do
+  desc "Build and upload app to TestFlight"
+  lane :beta do
+    require "base64"
+
+    api_key = app_store_connect_api_key(
+      key_id: ENV.fetch("APP_STORE_CONNECT_API_KEY_ID"),
+      issuer_id: ENV.fetch("APP_STORE_CONNECT_ISSUER_ID"),
+      key_content: Base64.decode64(ENV.fetch("APP_STORE_CONNECT_API_KEY_BASE64")),
+      is_key_content_base64: false
+    )
+
+    build_app(
+      project: "ProductivityAssistant.xcodeproj",
+      scheme: "ProductivityAssistant",
+      export_method: "app-store",
+      export_options: {
+        signingStyle: "automatic",
+        teamID: ENV["IOS_TEAM_ID"],
+      },
+      xcargs: "-allowProvisioningUpdates"
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      app_identifier: ENV.fetch("IOS_BUNDLE_IDENTIFIER", "com.productivity.assistant"),
+      skip_waiting_for_build_processing: true
+    )
+  end
+end

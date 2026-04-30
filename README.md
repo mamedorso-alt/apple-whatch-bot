@@ -22,3 +22,4 @@ Monorepo structure:
 - Telegram link and commands implemented
 - Scoring and daily/weekly reports implemented
 - iOS SwiftUI flow implemented (onboarding, permissions, link code, sync)
+- Optional CD automation added for backend deploy + iOS TestFlight (`docs/CD_AUTOMATION.md`)
