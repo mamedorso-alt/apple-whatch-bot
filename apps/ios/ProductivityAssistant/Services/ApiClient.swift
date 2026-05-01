@@ -15,10 +15,11 @@ final class ApiClient {
         value.keyEncodingStrategy = .convertToSnakeCase
         return value
     }()
+    /// Default keys only. Do **not** use `.convertFromSnakeCase` here: our `Codable` types use
+    /// explicit `CodingKeys` with snake_case `rawValue`s (e.g. `is_linked`). Mixing both breaks
+    /// decoding and surfaces as `DecodingError` / «Не удалось разобрать ответ сервера».
     private let apiDecoder: JSONDecoder = {
-        let d = JSONDecoder()
-        d.keyDecodingStrategy = .convertFromSnakeCase
-        return d
+        JSONDecoder()
     }()
 
     func authenticateDevice() async throws -> DeviceAuthResponse {
