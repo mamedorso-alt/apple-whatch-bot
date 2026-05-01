@@ -408,14 +408,14 @@ async def handle_meal_photo(db: Session, user: User, chat_id: int, file_id: str)
         await send_telegram_message(chat_id, msg(user.language, "meal_download_failed"))
         return
 
-    if not settings.openai_api_key:
-        await send_telegram_message(chat_id, msg(user.language, "meal_openai_missing"))
+    if not settings.openai_api_key and not settings.anthropic_api_key:
+        await send_telegram_message(chat_id, msg(user.language, "meal_ai_missing"))
         return
 
     try:
         analyzed = await analyze_food_image(data, mime, user.language, profile.diet_notes)
     except RuntimeError:
-        await send_telegram_message(chat_id, msg(user.language, "meal_openai_missing"))
+        await send_telegram_message(chat_id, msg(user.language, "meal_ai_missing"))
         return
     except Exception:
         await send_telegram_message(chat_id, msg(user.language, "meal_analyze_failed"))

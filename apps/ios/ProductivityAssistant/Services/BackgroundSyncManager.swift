@@ -29,7 +29,7 @@ final class BackgroundSyncManager {
 
     private func handle(refreshTask: BGAppRefreshTask) {
         scheduleAppRefresh()
-        let worker = Task {
+        let worker = Task { @MainActor in
             let viewModel = AppViewModel()
             await viewModel.performBackgroundSync()
             refreshTask.setTaskCompleted(success: true)

@@ -1,3 +1,4 @@
 apps/backend/.env
 apps/backend/.env.*
 !apps/backend/.env.example
+apps/ios/DerivedData/

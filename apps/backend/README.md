@@ -29,8 +29,8 @@
    - `TELEGRAM_BOT_TOKEN`
    - `TELEGRAM_WEBHOOK_SECRET`
    - `JWT_SECRET`
-  - `ANTHROPIC_API_KEY` (опционально; без него работает rule-based fallback коуч)
-  - `OPENAI_API_KEY` (опционально; нужен для распознавания голосовых сообщений Telegram)
+  - `ANTHROPIC_API_KEY` (опционально; AI-коуч и анализ фото еды в Telegram — при наличии ключа для еды используется в первую очередь)
+  - `OPENAI_API_KEY` (опционально; голосовые в Telegram; фото еды — если нет ключа Anthropic)
 3. Поднимите сервисы:
    - `docker compose up --build -d`
 4. Прогоните миграции:

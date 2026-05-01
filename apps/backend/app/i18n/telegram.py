@@ -43,7 +43,7 @@ MESSAGES = {
         "meal_help": "Сфотографируйте еду и отправьте фото сюда (после /link). Оценка ккал приблизительная.",
         "meal_disabled": "Лог еды выключен в профиле.",
         "meal_download_failed": "Не удалось скачать фото из Telegram.",
-        "meal_openai_missing": "Анализ фото не настроен на сервере (нет OPENAI_API_KEY).",
+        "meal_ai_missing": "Анализ фото не настроен: задайте ANTHROPIC_API_KEY или OPENAI_API_KEY на сервере.",
         "meal_analyze_failed": "Не удалось разобрать фото. Попробуйте другое фото или свет.",
     },
     "en": {
@@ -90,7 +90,7 @@ MESSAGES = {
         "meal_help": "Take a photo of your meal and send it here (after /link). Calorie estimate is approximate.",
         "meal_disabled": "Food logging is disabled in your profile.",
         "meal_download_failed": "Could not download the photo from Telegram.",
-        "meal_openai_missing": "Food photo analysis is not configured (missing OPENAI_API_KEY).",
+        "meal_ai_missing": "Food photo analysis is not configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY).",
         "meal_analyze_failed": "Could not analyze the photo. Try another angle or lighting.",
     },
 }
