@@ -8,10 +8,10 @@ final class HealthKitService {
 
     private var readTypes: Set<HKObjectType> {
         var types = Set<HKObjectType>()
+        // Omit `heartRate` — we never query it; extra toggles in Settings confuse users when denied.
         let quantityTypes: [HKQuantityTypeIdentifier] = [
             .stepCount,
             .activeEnergyBurned,
-            .heartRate,
             .restingHeartRate,
             .heartRateVariabilitySDNN,
         ]
@@ -33,15 +33,15 @@ final class HealthKitService {
         guard HKHealthStore.isHealthDataAvailable() else {
             throw NSError(domain: "HealthKitService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Health data is unavailable"])
         }
-        try await store.requestAuthorization(toShare: [], read: readTypes)
+        try await store.requestAuthorization(toShare: Set<HKSampleType>(), read: readTypes)
     }
 
     /// `true` when the Health permission sheet has already been shown for these read types (`unnecessary`),
     /// i.e. the user configured access in the app or in Settings — **not** a guarantee every toggle is on.
     func hasCompletedAuthorizationPrompt() async throws -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
-        try await withCheckedThrowingContinuation { continuation in
-            store.getRequestStatusForAuthorization(toShare: [], read: readTypes) { status, error in
+        return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
+            store.getRequestStatusForAuthorization(toShare: Set<HKSampleType>(), read: readTypes) { status, error in
                 if let error {
                     continuation.resume(throwing: error)
                     return
@@ -69,15 +69,21 @@ final class HealthKitService {
 
         for objectType in readTypes {
             guard let sampleType = objectType as? HKSampleType else { continue }
-            let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, _ in
-                if let callback = self?.onBackgroundChange {
-                    callback()
+            do {
+                let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, _ in
+                    if let callback = self?.onBackgroundChange {
+                        callback()
+                    }
+                    completionHandler()
                 }
-                completionHandler()
+                observerQueries.append(query)
+                store.execute(query)
+                try await store.enableBackgroundDelivery(for: sampleType, frequency: .immediate)
+            } catch {
+                if Self.shouldTreatQueryErrorAsEmptyData(error) == false {
+                    throw error
+                }
             }
-            observerQueries.append(query)
-            store.execute(query)
-            try await store.enableBackgroundDelivery(for: sampleType, frequency: .immediate)
         }
     }
 
@@ -92,6 +98,24 @@ final class HealthKitService {
     private static func finiteDouble(_ value: Double?) -> Double? {
         guard let value, value.isFinite else { return nil }
         return value
+    }
+
+    /// Per-type queries can fail with auth errors while steps are still allowed. Treat as “no data” for that type so sync can complete.
+    private static func shouldTreatQueryErrorAsEmptyData(_ error: Error) -> Bool {
+        let ns = error as NSError
+        guard ns.domain == HKError.errorDomain,
+              let code = HKError.Code(rawValue: ns.code)
+        else { return false }
+        switch code {
+        case .errorAuthorizationDenied,
+             .errorAuthorizationNotDetermined:
+            return true
+        case .errorHealthDataUnavailable,
+             .errorHealthDataRestricted:
+            return true
+        default:
+            return false
+        }
     }
 
     func dailyPayload(for day: Date = Date(), timezone: TimeZone = .current) async throws -> DailyPayload {
@@ -161,7 +185,11 @@ final class HealthKitService {
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
                 if let error {
-                    continuation.resume(throwing: error)
+                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
+                        continuation.resume(returning: 0)
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
                     return
                 }
                 let value = result?.sumQuantity()?.doubleValue(for: unit) ?? 0
@@ -177,7 +205,11 @@ final class HealthKitService {
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, error in
                 if let error {
-                    continuation.resume(throwing: error)
+                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
+                        continuation.resume(returning: nil)
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
                     return
                 }
                 let value = result?.averageQuantity()?.doubleValue(for: unit)
@@ -192,7 +224,11 @@ final class HealthKitService {
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
                 if let error {
-                    continuation.resume(throwing: error)
+                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
+                        continuation.resume(returning: 0)
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
                     return
                 }
                 continuation.resume(returning: samples?.count ?? 0)
@@ -226,7 +262,11 @@ final class HealthKitService {
             let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: [])
             let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
                 if let error {
-                    continuation.resume(throwing: error)
+                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
+                        continuation.resume(returning: (0, nil, nil))
+                    } else {
+                        continuation.resume(throwing: error)
+                    }
                     return
                 }
                 let entries = (samples as? [HKCategorySample]) ?? []

@@ -107,7 +107,7 @@
 
 "health_access.title" = "Health Access";
 "health_access.prompt" = "Allow access to HealthKit data:";
-"health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- heartRate\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
+"health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
 "health_access.button.allow" = "Allow Access";
 "health_access.button.granted" = "Health access on";
 

@@ -107,7 +107,7 @@
 
 "health_access.title" = "Доступ к Health";
 "health_access.prompt" = "Разрешите доступ к данным HealthKit:";
-"health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- heartRate\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
+"health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
 "health_access.button.allow" = "Разрешить доступ";
 "health_access.button.granted" = "Доступ настроен (Health)";
 
