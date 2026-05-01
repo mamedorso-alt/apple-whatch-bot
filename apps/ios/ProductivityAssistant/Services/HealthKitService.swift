@@ -64,6 +64,12 @@ final class HealthKitService {
         observerQueries.removeAll()
     }
 
+    /// JSON and the backend reject NaN/inf; HealthKit can rarely return non-finite doubles.
+    private static func finiteDouble(_ value: Double?) -> Double? {
+        guard let value, value.isFinite else { return nil }
+        return value
+    }
+
     func dailyPayload(for day: Date = Date(), timezone: TimeZone = .current) async throws -> DailyPayload {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: day)
@@ -79,17 +85,23 @@ final class HealthKitService {
         let sleep = try await sleepData
         let dateString = isoDate(startOfDay)
 
+        let stepsVal = max(0, Int(try await steps))
+        let kcalVal = Self.finiteDouble(try await activeKcal) ?? 0
+        let sleepMinVal = max(0, Int(min(sleep.minutes, Double(Int.max))))
+        let resting = try await restingHR
+        let hrvVal = try await hrv
+
         return DailyPayload(
             date: dateString,
             timezone: timezone.identifier,
-            steps: Int(try await steps),
-            activeKcal: try await activeKcal,
-            sleepMin: Int(sleep.minutes),
+            steps: stepsVal,
+            activeKcal: kcalVal,
+            sleepMin: sleepMinVal,
             sleepStart: sleep.start.map(isoDateTime),
             sleepEnd: sleep.end.map(isoDateTime),
-            restingHr: try await restingHR,
-            hrvSdnn: try await hrv,
-            workoutsCount: try await workouts
+            restingHr: Self.finiteDouble(resting),
+            hrvSdnn: Self.finiteDouble(hrvVal),
+            workoutsCount: max(0, try await workouts)
         )
     }
 

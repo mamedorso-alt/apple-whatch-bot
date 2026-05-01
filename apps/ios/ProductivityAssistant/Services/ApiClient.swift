@@ -28,7 +28,7 @@ final class ApiClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try JSONDecoder().decode(DeviceAuthResponse.self, from: data)
+        return try apiDecoder.decode(DeviceAuthResponse.self, from: data)
     }
 
     func createLinkCode(apiToken: String) async throws -> LinkCodeResponse {
@@ -38,7 +38,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try JSONDecoder().decode(LinkCodeResponse.self, from: data)
+        return try apiDecoder.decode(LinkCodeResponse.self, from: data)
     }
 
     func sendDailyMetrics(payload: DailyPayload, apiToken: String) async throws {
@@ -59,7 +59,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try JSONDecoder().decode(TextReportResponse.self, from: data)
+        return try apiDecoder.decode(TextReportResponse.self, from: data)
     }
 
     func getWeekReport(apiToken: String) async throws -> TextReportResponse {
@@ -69,7 +69,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try JSONDecoder().decode(TextReportResponse.self, from: data)
+        return try apiDecoder.decode(TextReportResponse.self, from: data)
     }
 
     func getReportStatus(apiToken: String) async throws -> ReportStatusResponse {
@@ -79,7 +79,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try JSONDecoder().decode(ReportStatusResponse.self, from: data)
+        return try apiDecoder.decode(ReportStatusResponse.self, from: data)
     }
 
     func getUserProfile(apiToken: String) async throws -> UserProfileDTO {

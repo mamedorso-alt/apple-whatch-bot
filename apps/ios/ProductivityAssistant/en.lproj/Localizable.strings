@@ -120,6 +120,12 @@
 
 "error.network_offline" = "No internet connection. Check network and try again.";
 "error.request_timeout" = "Request timed out. Please try again.";
+"error.tls_failed" = "Secure connection failed. Check date & time and try another network.";
+"error.network_detail" = "Network: %@";
+"error.decode" = "Could not read server response. Update the app or try again.";
+"error.healthkit" = "Could not read Health data. Open Settings → Health → Data Access and allow access for this app.";
+"error.api_detail" = "Server: %@";
+"error.detail_fallback" = "%@";
 "error.auth_invalid" = "Authorization failed. Re-link device token and retry.";
 "error.server_unavailable" = "Server is temporarily unavailable. Try again later.";
 "error.generic" = "Something went wrong. Please try again.";

@@ -245,23 +245,50 @@ final class AppViewModel: ObservableObject {
     private func mapErrorMessage(_ error: Error) -> String {
         if let urlError = error as? URLError {
             switch urlError.code {
-            case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost:
+            case .notConnectedToInternet, .networkConnectionLost, .cannotConnectToHost, .dataNotAllowed:
                 return String(localized: "error.network_offline")
             case .timedOut:
                 return String(localized: "error.request_timeout")
+            case .secureConnectionFailed, .serverCertificateUntrusted, .clientCertificateRejected:
+                return String(localized: "error.tls_failed")
             default:
+                let detail = urlError.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !detail.isEmpty {
+                    return String(format: String(localized: "error.network_detail"), detail)
+                }
                 return String(localized: "error.generic")
             }
         }
 
+        if error is DecodingError {
+            return String(localized: "error.decode")
+        }
+
         let nsError = error as NSError
+        if nsError.domain == "com.apple.healthkit" {
+            return String(localized: "error.healthkit")
+        }
+        if nsError.domain == "HealthKitService" {
+            return String(localized: "error.healthkit")
+        }
+
         if nsError.domain == "ApiClient" {
+            let detail = (nsError.userInfo[NSLocalizedDescriptionKey] as? String ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
             if nsError.code == 401 {
                 return String(localized: "error.auth_invalid")
             }
             if nsError.code >= 500 {
                 return String(localized: "error.server_unavailable")
             }
+            if !detail.isEmpty {
+                let clipped = detail.count > 400 ? String(detail.prefix(400)) + "…" : detail
+                return String(format: String(localized: "error.api_detail"), clipped)
+            }
+        }
+        let fallback = nsError.localizedDescription.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !fallback.isEmpty, fallback != "The operation couldn’t be completed." {
+            return String(format: String(localized: "error.detail_fallback"), fallback)
         }
         return String(localized: "error.generic")
     }
