@@ -99,6 +99,29 @@ def test_end_to_end_api_flow(monkeypatch):
     assert ingest.status_code == 200
     assert ingest.json()["status"] == "ok"
 
+    sales_snapshot_payload = {
+        "period_type": "week",
+        "period_start": str(date.today().replace(day=max(1, date.today().day - 6))),
+        "period_end": str(date.today()),
+        "sent_messages": 120,
+        "call_attempts": 64,
+        "talk_minutes": 310,
+        "revenue": 150000.0,
+        "plan_amount": 200000.0,
+        "unplanned_payments_count": 2,
+        "unplanned_payments_sum": 15000.0,
+        "overdue_payments_count": 1,
+        "overdue_payments_sum": 7000.0,
+        "call_patterns": [
+            {"pattern": "нет фиксации next step", "count": 4},
+            {"pattern": "слабая отработка возражений", "count": 3},
+        ],
+        "week_ending_weekday": 6,
+    }
+    sales_ingest = client.post("/v1/sales/snapshot", json=sales_snapshot_payload, headers=headers)
+    assert sales_ingest.status_code == 200
+    assert sales_ingest.json()["status"] == "ok"
+
     today_update = {
         "message": {
             "text": "/today",
@@ -135,6 +158,17 @@ def test_end_to_end_api_flow(monkeypatch):
     coach_chat_webhook = client.post("/v1/telegram/webhook", json=coach_chat_update, headers=webhook_headers)
     assert coach_chat_webhook.status_code == 200
     assert coach_chat_webhook.json()["status"] == "ok"
+
+    weekly_update = {
+        "message": {
+            "text": "/weekly",
+            "chat": {"id": 12345},
+            "from": {"id": 777},
+        }
+    }
+    weekly_webhook = client.post("/v1/telegram/webhook", json=weekly_update, headers=webhook_headers)
+    assert weekly_webhook.status_code == 200
+    assert weekly_webhook.json()["status"] == "ok"
 
     plain_text_update = {
         "message": {

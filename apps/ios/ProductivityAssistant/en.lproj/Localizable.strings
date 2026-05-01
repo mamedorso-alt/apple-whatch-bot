@@ -45,6 +45,9 @@
 "dashboard.card.today" = "Today Status";
 "dashboard.card.recovery" = "Recovery Snapshot";
 "dashboard.card.weekly_preview" = "Weekly Preview";
+"dashboard.card.insight_preview" = "Today’s tip";
+"dashboard.insight.placeholder" = "After sync, a short personalized insight will appear here. You can also open the full Insights screen.";
+"dashboard.insight.open_full" = "Open full insights";
 "dashboard.kpi.connection" = "Connection";
 "dashboard.kpi.score" = "Today Score";
 "dashboard.kpi.avg_steps" = "Avg Steps";
@@ -57,6 +60,36 @@
 "dashboard.status.waiting" = "Waiting for daily sync";
 "profile.card.status" = "Profile Status";
 "profile.card.quick_actions" = "Quick Actions";
+"nav.health_profile" = "Health profile";
+"nav.insights" = "Insights";
+
+"health_profile.title" = "Health profile";
+"health_profile.card.body" = "Goals & notes";
+"health_profile.card.weight" = "Weight";
+"health_profile.field.goal" = "Goal (short)";
+"health_profile.field.height" = "Height (cm)";
+"health_profile.field.diet_notes" = "Diet notes";
+"health_profile.field.food_logging" = "Food photo logging";
+"health_profile.field.max_alerts" = "Max smart alerts / day: %d";
+"health_profile.last_weight" = "Last logged: %@ kg";
+"health_profile.weight.placeholder" = "kg";
+"health_profile.weight.save" = "Log";
+"health_profile.save_profile" = "Save profile";
+
+"health_profile.card.subjective" = "How you feel today";
+"health_profile.subjective.scale_hint" = "0 = low, 5 = high (informational, not medical).";
+"health_profile.subjective.stress" = "Stress";
+"health_profile.subjective.fatigue" = "Fatigue";
+"health_profile.subjective.stepper_format" = "%@: %d";
+"health_profile.subjective.note_optional" = "Note (optional)";
+"health_profile.subjective.save" = "Save check-in";
+"health_profile.subjective.saved" = "Saved for today.";
+
+"insights.title" = "Insights";
+"insights.card.daily" = "Today";
+"insights.card.weekly" = "Week vs week";
+"insights.refresh" = "Refresh";
+"insights.empty" = "Loading…";
 
 "onboarding.title" = "Onboarding";
 "onboarding.header" = "Apple Watch Productivity Assistant";

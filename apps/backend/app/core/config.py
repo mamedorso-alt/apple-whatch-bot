@@ -25,6 +25,11 @@ class Settings(BaseSettings):
     openai_api_key: str = ""
     openai_stt_model: str = "whisper-1"
     openai_stt_timeout_sec: int = 30
+    openai_vision_model: str = "gpt-4o-mini"
+    openai_timeout_sec: float = 90.0
+    smart_alerts_enabled: bool = True
+    insights_baseline_days: int = 28
+    insights_regularity_days: int = 14
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 

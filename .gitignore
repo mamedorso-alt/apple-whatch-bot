@@ -1,0 +1,3 @@
+apps/backend/.env
+apps/backend/.env.*
+!apps/backend/.env.example

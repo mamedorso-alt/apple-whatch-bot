@@ -23,6 +23,7 @@ class User(Base):
     api_token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
 
     link_codes: Mapped[list["LinkCode"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    profile: Mapped["UserProfile | None"] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")
 
 
 class LinkCode(Base):
@@ -77,3 +78,116 @@ class MessageLog(Base):
     message_type: Mapped[str] = mapped_column(String(16), nullable=False)
     status: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
     sent_at: Mapped[dt_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    height_cm: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    sex: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    birth_year: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    goal_type: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    goal_target_weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    goal_horizon_date: Mapped[dt_date | None] = mapped_column(Date, nullable=True)
+    diet_notes: Mapped[str | None] = mapped_column(Text, nullable=True)
+    medical_flags_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    quiet_hours_start: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    quiet_hours_end: Mapped[str | None] = mapped_column(String(5), nullable=True)
+    weekly_weigh_in_weekday: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    last_weight_kg: Mapped[Decimal | None] = mapped_column(Numeric(5, 2), nullable=True)
+    last_weight_at: Mapped[dt_datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    max_alerts_per_day: Mapped[int] = mapped_column(Integer, nullable=False, default=3)
+    food_logging_enabled: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    updated_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    user: Mapped[User] = relationship(back_populates="profile")
+
+
+class UserBodyMetric(Base):
+    __tablename__ = "user_body_metrics"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    recorded_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    weight_kg: Mapped[Decimal] = mapped_column(Numeric(5, 2), nullable=False)
+    source: Mapped[str] = mapped_column(String(32), nullable=False, default="manual")
+
+
+class UserSubjectiveDaily(Base):
+    __tablename__ = "user_subjective_daily"
+    __table_args__ = (UniqueConstraint("user_id", "date", name="uq_subjective_user_date"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    date: Mapped[dt_date] = mapped_column(Date, nullable=False)
+    stress_0_5: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    fatigue_0_5: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+class MealLog(Base):
+    __tablename__ = "meal_log"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    logged_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    meal_type: Mapped[str] = mapped_column(String(16), nullable=False, default="unknown")
+    photo_file_id: Mapped[str | None] = mapped_column(Text, nullable=True)
+    description_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    estimated_kcal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    confidence: Mapped[Decimal | None] = mapped_column(Numeric(4, 3), nullable=True)
+    macros_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    user_confirmed: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    user_adjusted_kcal: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    raw_model_json: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+
+
+class AlertLog(Base):
+    __tablename__ = "alert_log"
+    __table_args__ = (UniqueConstraint("user_id", "alert_date", "rule_id", name="uq_alert_user_date_rule"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    alert_date: Mapped[dt_date] = mapped_column(Date, nullable=False)
+    rule_id: Mapped[str] = mapped_column(String(64), nullable=False)
+    channel: Mapped[str] = mapped_column(String(16), nullable=False, default="telegram")
+    payload_summary: Mapped[str | None] = mapped_column(Text, nullable=True)
+    sent_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class SalesSnapshot(Base):
+    __tablename__ = "sales_snapshots"
+    __table_args__ = (UniqueConstraint("user_id", "period_type", "period_start", "period_end", name="uq_sales_snapshot_period"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    period_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    period_start: Mapped[dt_date] = mapped_column(Date, nullable=False)
+    period_end: Mapped[dt_date] = mapped_column(Date, nullable=False)
+    sent_messages: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    call_attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    talk_minutes: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    revenue: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=0)
+    plan_amount: Mapped[Decimal | None] = mapped_column(Numeric(14, 2), nullable=True)
+    unplanned_payments_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    unplanned_payments_sum: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=0)
+    overdue_payments_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    overdue_payments_sum: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False, default=0)
+    call_patterns_json: Mapped[list[dict]] = mapped_column(JSON, nullable=False, default=list)
+    meta_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+
+class SalesAgentMemory(Base):
+    __tablename__ = "sales_agent_memory"
+    __table_args__ = (UniqueConstraint("user_id", "memory_type", "period_key", name="uq_sales_memory_period"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    memory_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    period_key: Mapped[str] = mapped_column(String(32), nullable=False)
+    summary_json: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)

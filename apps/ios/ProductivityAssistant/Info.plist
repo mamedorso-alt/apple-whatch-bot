@@ -20,10 +20,18 @@
     <string>1</string>
     <key>API_BASE_URL</key>
     <string>https://applewhatchbotforrustam.website</string>
+    <key>BGTaskSchedulerPermittedIdentifiers</key>
+    <array>
+        <string>com.productivity.assistant.sync</string>
+    </array>
     <key>NSHealthShareUsageDescription</key>
     <string>App reads Health data to build daily productivity insights and Telegram reports.</string>
     <key>NSHealthUpdateUsageDescription</key>
     <string>Reserved for future features. Current MVP uses read-only HealthKit access.</string>
+    <key>UIBackgroundModes</key>
+    <array>
+        <string>fetch</string>
+    </array>
     <key>UILaunchScreen</key>
     <dict/>
 </dict>

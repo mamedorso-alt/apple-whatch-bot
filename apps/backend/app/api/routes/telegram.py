@@ -13,6 +13,8 @@ from app.services.linking import generate_link_code
 from app.services.telegram import (
     build_command_reply_async,
     extract_incoming_text_or_reply,
+    handle_meal_callback,
+    handle_meal_photo,
     language_for_telegram,
     send_telegram_message,
 )
@@ -41,6 +43,19 @@ async def telegram_webhook(
         if x_telegram_bot_api_secret_token != settings.telegram_webhook_secret:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret")
 
+    cq = payload.get("callback_query")
+    if cq:
+        from_user = cq.get("from") or {}
+        telegram_user_id = from_user.get("id")
+        data = (cq.get("data") or "").strip()
+        cq_id = cq.get("id")
+        if telegram_user_id and data and cq_id:
+            try:
+                await handle_meal_callback(db, telegram_user_id, data, cq_id)
+            except Exception:
+                logger.exception("meal callback failed")
+        return {"status": "ok"}
+
     message = payload.get("message") or {}
     chat = message.get("chat") or {}
     from_user = message.get("from") or {}
@@ -49,6 +64,28 @@ async def telegram_webhook(
 
     if chat_id is None or telegram_user_id is None:
         return {"status": "ignored"}
+
+    photos = message.get("photo") or []
+    if photos:
+        user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+        if not user or not user.is_linked:
+            await send_telegram_message(chat_id=chat_id, text=msg(language_for_telegram(db, telegram_user_id), "link_usage"))
+            return {"status": "ok"}
+        file_id = photos[-1].get("file_id") or ""
+        if not file_id:
+            return {"status": "ignored"}
+        try:
+            await handle_meal_photo(db, user, chat_id, file_id)
+        except Exception:
+            logger.exception("meal photo failed")
+            try:
+                await send_telegram_message(
+                    chat_id=chat_id,
+                    text=msg(language_for_telegram(db, telegram_user_id), "generic_processing_error"),
+                )
+            except Exception:
+                logger.exception("failed to send error to telegram")
+        return {"status": "ok"}
 
     try:
         text, immediate_reply = await extract_incoming_text_or_reply(db, telegram_user_id, message)
@@ -62,7 +99,6 @@ async def telegram_webhook(
         await send_telegram_message(chat_id=chat_id, text=reply)
         return {"status": "ok"}
     except Exception:
-        # Never return 5xx to Telegram, otherwise one bad update blocks the queue.
         logger.exception("Telegram webhook processing failed")
         try:
             await send_telegram_message(

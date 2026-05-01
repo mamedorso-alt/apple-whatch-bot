@@ -15,6 +15,29 @@ struct DashboardView: View {
                         .foregroundStyle(.white.opacity(0.7))
                 }
 
+                DashboardCard(title: String(localized: "dashboard.card.insight_preview")) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text(insightPreviewBody)
+                            .font(.footnote)
+                            .foregroundStyle(.white.opacity(0.88))
+                            .lineLimit(6)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        NavigationLink {
+                            InsightsView(viewModel: viewModel)
+                        } label: {
+                            HStack {
+                                Text(String(localized: "dashboard.insight.open_full"))
+                                    .font(.subheadline.weight(.medium))
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(.white.opacity(0.45))
+                            }
+                            .foregroundStyle(AppTheme.accent)
+                        }
+                    }
+                }
+
                 DashboardCard(title: String(localized: "dashboard.card.recovery")) {
                     HStack(spacing: 10) {
                         KPIView(
@@ -99,6 +122,14 @@ struct DashboardView: View {
             return String(format: String(localized: "sync.last_sync"), date.formatted(date: .abbreviated, time: .shortened))
         }
         return String(localized: "sync.last_sync_never")
+    }
+
+    private var insightPreviewBody: String {
+        let t = viewModel.dailyInsightText.trimmingCharacters(in: .whitespacesAndNewlines)
+        if t.isEmpty {
+            return String(localized: "dashboard.insight.placeholder")
+        }
+        return t
     }
 
     private func weeklyStats() -> (avgSteps: Double, avgKcal: Double) {

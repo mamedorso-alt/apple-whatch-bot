@@ -20,6 +20,10 @@ targets:
         API_BASE_URL: https://applewhatchbotforrustam.website
         NSHealthShareUsageDescription: App reads Health data to build daily productivity insights and Telegram reports.
         NSHealthUpdateUsageDescription: Reserved for future features. Current MVP uses read-only HealthKit access.
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.productivity.assistant.sync
+        UIBackgroundModes:
+          - fetch
     settings:
       base:
         TARGETED_DEVICE_FAMILY: "1,2"

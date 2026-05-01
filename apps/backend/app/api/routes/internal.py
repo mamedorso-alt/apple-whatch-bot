@@ -13,7 +13,7 @@ settings = get_settings()
 async def run_scheduled(
     x_internal_secret: str | None = Header(default=None),
     db: Session = Depends(get_db),
-) -> dict[str, int]:
+) -> dict:
     if settings.jwt_secret and x_internal_secret != settings.jwt_secret:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal secret")
     return await run_scheduled_reports(db)

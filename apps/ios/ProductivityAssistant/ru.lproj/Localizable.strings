@@ -45,6 +45,9 @@
 "dashboard.card.today" = "Статус дня";
 "dashboard.card.recovery" = "Срез восстановления";
 "dashboard.card.weekly_preview" = "Превью недели";
+"dashboard.card.insight_preview" = "Подсказка дня";
+"dashboard.insight.placeholder" = "После синхронизации здесь появится краткий инсайт. Полный текст — в разделе «Инсайты».";
+"dashboard.insight.open_full" = "Все инсайты";
 "dashboard.kpi.connection" = "Подключение";
 "dashboard.kpi.score" = "Оценка за сегодня";
 "dashboard.kpi.avg_steps" = "Средние шаги";
@@ -57,6 +60,36 @@
 "dashboard.status.waiting" = "Ожидается синхронизация";
 "profile.card.status" = "Статус профиля";
 "profile.card.quick_actions" = "Быстрые действия";
+"nav.health_profile" = "Профиль здоровья";
+"nav.insights" = "Инсайты";
+
+"health_profile.title" = "Профиль здоровья";
+"health_profile.card.body" = "Цели и заметки";
+"health_profile.card.weight" = "Вес";
+"health_profile.field.goal" = "Цель (кратко)";
+"health_profile.field.height" = "Рост (см)";
+"health_profile.field.diet_notes" = "Заметки по питанию";
+"health_profile.field.food_logging" = "Фото еды в Telegram";
+"health_profile.field.max_alerts" = "Макс. умных алертов в день: %d";
+"health_profile.last_weight" = "Последний вес: %@ кг";
+"health_profile.weight.placeholder" = "кг";
+"health_profile.weight.save" = "Записать";
+"health_profile.save_profile" = "Сохранить профиль";
+
+"health_profile.card.subjective" = "Самочувствие сегодня";
+"health_profile.subjective.scale_hint" = "0 — слабо, 5 — сильно (информация, не медсовет).";
+"health_profile.subjective.stress" = "Стресс";
+"health_profile.subjective.fatigue" = "Усталость";
+"health_profile.subjective.stepper_format" = "%@: %d";
+"health_profile.subjective.note_optional" = "Заметка (необязательно)";
+"health_profile.subjective.save" = "Сохранить";
+"health_profile.subjective.saved" = "Сохранено на сегодня.";
+
+"insights.title" = "Инсайты";
+"insights.card.daily" = "Сегодня";
+"insights.card.weekly" = "Неделя к неделе";
+"insights.refresh" = "Обновить";
+"insights.empty" = "Загрузка…";
 
 "onboarding.title" = "Онбординг";
 "onboarding.header" = "Apple Watch Productivity Assistant";

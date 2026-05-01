@@ -3,6 +3,8 @@ import HealthKit
 
 final class HealthKitService {
     private let store = HKHealthStore()
+    private var observerQueries: [HKObserverQuery] = []
+    private var onBackgroundChange: (@Sendable () -> Void)?
 
     private var readTypes: Set<HKObjectType> {
         var types = Set<HKObjectType>()
@@ -32,6 +34,34 @@ final class HealthKitService {
             throw NSError(domain: "HealthKitService", code: 1, userInfo: [NSLocalizedDescriptionKey: "Health data is unavailable"])
         }
         try await store.requestAuthorization(toShare: [], read: readTypes)
+    }
+
+    func startBackgroundDelivery(onChange: @escaping @Sendable () -> Void) async throws {
+        guard HKHealthStore.isHealthDataAvailable() else {
+            return
+        }
+        onBackgroundChange = onChange
+        stopBackgroundDelivery()
+
+        for objectType in readTypes {
+            guard let sampleType = objectType as? HKSampleType else { continue }
+            let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, _ in
+                if let callback = self?.onBackgroundChange {
+                    callback()
+                }
+                completionHandler()
+            }
+            observerQueries.append(query)
+            store.execute(query)
+            try await store.enableBackgroundDelivery(for: sampleType, frequency: .immediate)
+        }
+    }
+
+    func stopBackgroundDelivery() {
+        for query in observerQueries {
+            store.stop(query)
+        }
+        observerQueries.removeAll()
     }
 
     func dailyPayload(for day: Date = Date(), timezone: TimeZone = .current) async throws -> DailyPayload {
@@ -135,25 +165,79 @@ final class HealthKitService {
         }
     }
 
+    /// Raw values for time actually asleep (Apple Watch uses stage samples, not legacy `.asleep` only).
+    private static let asleepStageRawValues: Set<Int> = [
+        HKCategoryValueSleepAnalysis.asleep.rawValue,
+        HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
+        HKCategoryValueSleepAnalysis.asleepCore.rawValue,
+        HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
+        HKCategoryValueSleepAnalysis.asleepREM.rawValue,
+    ]
+
+    /// Sleep attributed to calendar `day`: main night is usually recorded starting the evening before.
+    /// We fetch a wide window, cluster asleep segments into sessions, and pick sessions whose end falls on this day (wake-up day).
     private func sleepDuration(start: Date, end: Date) async throws -> (minutes: Double, start: Date?, end: Date?) {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             return (0, nil, nil)
         }
+        let calendar = Calendar.current
+        guard let queryStart = calendar.date(byAdding: .hour, value: -18, to: start),
+              let queryEnd = calendar.date(byAdding: .hour, value: 12, to: end) else {
+            return (0, nil, nil)
+        }
+
         return try await withCheckedThrowingContinuation { continuation in
-            let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+            let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: [])
             let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
                 if let error {
                     continuation.resume(throwing: error)
                     return
                 }
                 let entries = (samples as? [HKCategorySample]) ?? []
-                let filtered = entries.filter { $0.value == HKCategoryValueSleepAnalysis.asleep.rawValue }
-                let minutes = filtered.reduce(0.0) { partial, sample in
-                    partial + sample.endDate.timeIntervalSince(sample.startDate) / 60.0
+                let asleepSamples = entries.filter { Self.asleepStageRawValues.contains($0.value) }
+
+                let gapBreakSeconds: TimeInterval = 2 * 3600
+                var totalMinutes = 0.0
+                var earliestStart: Date?
+                var latestEnd: Date?
+
+                func accumulateSessions(_ samples: [HKCategorySample]) {
+                    guard !samples.isEmpty else { return }
+                    var clustered: [[HKCategorySample]] = []
+                    var cur: [HKCategorySample] = []
+                    for sample in samples.sorted(by: { $0.startDate < $1.startDate }) {
+                        if let last = cur.last, sample.startDate.timeIntervalSince(last.endDate) > gapBreakSeconds {
+                            clustered.append(cur)
+                            cur = [sample]
+                        } else {
+                            cur.append(sample)
+                        }
+                    }
+                    if !cur.isEmpty { clustered.append(cur) }
+
+                    for session in clustered {
+                        let sessionEnd = session.map(\.endDate).max() ?? start
+                        guard sessionEnd >= start, sessionEnd < end else { continue }
+
+                        for sample in session {
+                            totalMinutes += sample.endDate.timeIntervalSince(sample.startDate) / 60.0
+                        }
+                        let sessionStart = session.map(\.startDate).min()
+                        if let sessionStart {
+                            earliestStart = min(earliestStart ?? sessionStart, sessionStart)
+                        }
+                        latestEnd = max(latestEnd ?? sessionEnd, sessionEnd)
+                    }
                 }
-                let first = filtered.min(by: { $0.startDate < $1.startDate })?.startDate
-                let last = filtered.max(by: { $0.endDate < $1.endDate })?.endDate
-                continuation.resume(returning: (minutes, first, last))
+
+                accumulateSessions(asleepSamples)
+
+                if totalMinutes < 1 {
+                    let inBedSamples = entries.filter { $0.value == HKCategoryValueSleepAnalysis.inBed.rawValue }
+                    accumulateSessions(inBedSamples)
+                }
+
+                continuation.resume(returning: (totalMinutes, earliestStart, latestEnd))
             }
             self.store.execute(query)
         }

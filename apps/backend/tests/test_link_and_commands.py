@@ -33,8 +33,22 @@ def test_unknown_command():
     assert "неизвест" in reply.lower()
 
 
-def test_help_contains_coach_command():
+def test_help_contains_sales_commands():
     db = FakeSession()
+    user = make_user(language="ru", telegram_user_id=777)
+    db.users.append(user)
     reply = build_command_reply(db, telegram_user_id=777, text="/help")
-    assert "/coach" in reply
+    assert "/weekly" in reply
+    assert "/plan" in reply
     assert "/ask" in reply
+    assert "/weight" in reply
+
+
+def test_weight_command_records():
+    db = FakeSession()
+    user = make_user(language="ru", telegram_user_id=777)
+    db.users.append(user)
+    reply = build_command_reply(db, telegram_user_id=777, text="/weight 72.4")
+    assert "сохран" in reply.lower() or "saved" in reply.lower()
+    assert len(db.user_profiles) == 1
+    assert len(db.user_body_metrics) == 1

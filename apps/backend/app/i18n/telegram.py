@@ -1,23 +1,25 @@
 MESSAGES = {
     "ru": {
         "start": (
-            "Привет! Я помогу с отчетами продуктивности.\n"
-            "Привяжите аккаунт через /link CODE из iOS приложения.\n"
-            "Команды: /today /week /coach [/вопрос] /ask ВОПРОС /lang ru|en /help\n"
-            "Также можно писать просто текстом без команды."
+            "Привет! Я AI-ассистент: здоровье/фокус и разбор продаж.\n"
+            "Привяжите аккаунт: /link CODE из приложения.\n"
+            "Здоровье: /today /week /insights /trends /profile /weight /mood /meal /coach\n"
+            "Продажи: /weekly /month /plan /risks /actions /ask\n"
+            "Голос и свободный текст поддерживаются. /lang ru|en /help"
         ),
         "help": (
-            "Доступные команды:\n"
-            "/start - приветствие\n"
-            "/link CODE - привязать Telegram к приложению\n"
-            "/today - отчет за сегодня\n"
-            "/week - отчет за 7 дней\n"
-            "/coach - персональная AI-рекомендация\n"
-            "/coach ВОПРОС - AI-ответ по вашему вопросу\n"
-            "/ask ВОПРОС - AI-диалог\n"
-            "/lang ru|en - сменить язык\n"
-            "/help - помощь\n"
-            "Можно писать и без команды: я отвечу как AI-коуч."
+            "Команды здоровье и фокус:\n"
+            "/today /week — отчёты\n"
+            "/insights или /day — инсайт дня\n"
+            "/trends — недельные тренды\n"
+            "/profile — профиль\n"
+            "/weight 72.4 — вес\n"
+            "/mood 3 2 — стресс и усталость 0–5 за сегодня\n"
+            "/meal — как отправить фото еды\n"
+            "/coach — AI-коуч (или /coach ваш вопрос)\n"
+            "\nПродажи:\n"
+            "/weekly /month /plan /risks /actions /ask ВОПРОС\n"
+            "\nОбщее: /link CODE, /lang ru|en, /help"
         ),
         "link_usage": "Использование: /link CODE",
         "link_success": "Готово! Аккаунт успешно привязан.",
@@ -34,26 +36,37 @@ MESSAGES = {
         "today_stub": "Отчет /today будет доступен на следующем шаге MVP.",
         "week_stub": "Отчет /week будет доступен на следующем шаге MVP.",
         "unknown": "Неизвестная команда. Используйте /help.",
+        "weight_usage": "Использование: /weight 72.4",
+        "weight_saved": "Вес сохранён.",
+        "mood_usage": "Использование: /mood 3 2 (стресс и усталость от 0 до 5)",
+        "mood_saved": "Записал самочувствие на сегодня.",
+        "meal_help": "Сфотографируйте еду и отправьте фото сюда (после /link). Оценка ккал приблизительная.",
+        "meal_disabled": "Лог еды выключен в профиле.",
+        "meal_download_failed": "Не удалось скачать фото из Telegram.",
+        "meal_openai_missing": "Анализ фото не настроен на сервере (нет OPENAI_API_KEY).",
+        "meal_analyze_failed": "Не удалось разобрать фото. Попробуйте другое фото или свет.",
     },
     "en": {
         "start": (
-            "Hi! I help with productivity reports.\n"
-            "Link your account using /link CODE from the iOS app.\n"
-            "Commands: /today /week /coach [question] /ask QUESTION /lang ru|en /help\n"
-            "You can also just send plain text."
+            "Hi! I'm your AI assistant for health/focus and sales.\n"
+            "Link: /link CODE from the app.\n"
+            "Health: /today /week /insights /trends /profile /weight /mood /meal /coach\n"
+            "Sales: /weekly /month /plan /risks /actions /ask\n"
+            "Voice and free text work. /lang ru|en /help"
         ),
         "help": (
-            "Available commands:\n"
-            "/start - greeting\n"
-            "/link CODE - link Telegram with app account\n"
-            "/today - today's report\n"
-            "/week - 7-day report\n"
-            "/coach - personal AI recommendation\n"
-            "/coach QUESTION - AI answer for your question\n"
-            "/ask QUESTION - AI dialogue\n"
-            "/lang ru|en - switch language\n"
-            "/help - help\n"
-            "You can write without commands and I will reply as AI coach."
+            "Health & focus:\n"
+            "/today /week — reports\n"
+            "/insights or /day — daily insight\n"
+            "/trends — weekly trends\n"
+            "/profile — profile summary\n"
+            "/weight 72.4 — log weight\n"
+            "/mood 3 2 — stress & fatigue 0–5 for today\n"
+            "/meal — food photo how-to\n"
+            "/coach — AI coach (or /coach your question)\n"
+            "\nSales:\n"
+            "/weekly /month /plan /risks /actions /ask QUESTION\n"
+            "\nGeneral: /link CODE, /lang ru|en, /help"
         ),
         "link_usage": "Usage: /link CODE",
         "link_success": "Done! Your account is linked.",
@@ -70,6 +83,15 @@ MESSAGES = {
         "today_stub": "/today report will be available in the next MVP step.",
         "week_stub": "/week report will be available in the next MVP step.",
         "unknown": "Unknown command. Use /help.",
+        "weight_usage": "Usage: /weight 72.4",
+        "weight_saved": "Weight saved.",
+        "mood_usage": "Usage: /mood 3 2 (stress and fatigue 0–5)",
+        "mood_saved": "Logged how you feel for today.",
+        "meal_help": "Take a photo of your meal and send it here (after /link). Calorie estimate is approximate.",
+        "meal_disabled": "Food logging is disabled in your profile.",
+        "meal_download_failed": "Could not download the photo from Telegram.",
+        "meal_openai_missing": "Food photo analysis is not configured (missing OPENAI_API_KEY).",
+        "meal_analyze_failed": "Could not analyze the photo. Try another angle or lighting.",
     },
 }
 

@@ -15,6 +15,11 @@ final class ApiClient {
         value.keyEncodingStrategy = .convertToSnakeCase
         return value
     }()
+    private let apiDecoder: JSONDecoder = {
+        let d = JSONDecoder()
+        d.keyDecodingStrategy = .convertFromSnakeCase
+        return d
+    }()
 
     func authenticateDevice() async throws -> DeviceAuthResponse {
         let url = baseURL.appending(path: "/v1/auth/device")
@@ -75,6 +80,73 @@ final class ApiClient {
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
         return try JSONDecoder().decode(ReportStatusResponse.self, from: data)
+    }
+
+    func getUserProfile(apiToken: String) async throws -> UserProfileDTO {
+        let url = baseURL.appending(path: "/v1/profile")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return try apiDecoder.decode(UserProfileDTO.self, from: data)
+    }
+
+    func patchUserProfile(apiToken: String, patch: UserProfilePatch) async throws -> UserProfileDTO {
+        let url = baseURL.appending(path: "/v1/profile")
+        var request = URLRequest(url: url)
+        request.httpMethod = "PATCH"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try encoder.encode(patch)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return try apiDecoder.decode(UserProfileDTO.self, from: data)
+    }
+
+    func postProfileWeight(apiToken: String, weightKg: Double) async throws -> UserProfileDTO {
+        let url = baseURL.appending(path: "/v1/profile/weight")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try encoder.encode(WeightIngestPayload(weightKg: weightKg))
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return try apiDecoder.decode(UserProfileDTO.self, from: data)
+    }
+
+    func postProfileSubjective(apiToken: String, payload: SubjectiveDailyPayload) async throws -> SubjectiveSaveResponse {
+        let url = baseURL.appending(path: "/v1/profile/subjective")
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        let plainEncoder = JSONEncoder()
+        request.httpBody = try plainEncoder.encode(payload)
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return try apiDecoder.decode(SubjectiveSaveResponse.self, from: data)
+    }
+
+    func getDailyInsights(apiToken: String) async throws -> InsightTextResponse {
+        let url = baseURL.appending(path: "/v1/insights/daily")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return try apiDecoder.decode(InsightTextResponse.self, from: data)
+    }
+
+    func getWeeklyInsights(apiToken: String) async throws -> InsightTextResponse {
+        let url = baseURL.appending(path: "/v1/insights/weekly")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return try apiDecoder.decode(InsightTextResponse.self, from: data)
     }
 
     private func validate(response: URLResponse, data: Data) throws {

@@ -41,6 +41,16 @@ struct ProfileHubView: View {
                         profileActionRow(title: String(localized: "nav.health_access"), icon: "heart.text.square.fill")
                     }
                     NavigationLink {
+                        HealthProfileView(viewModel: viewModel)
+                    } label: {
+                        profileActionRow(title: String(localized: "nav.health_profile"), icon: "person.text.rectangle.fill")
+                    }
+                    NavigationLink {
+                        InsightsView(viewModel: viewModel)
+                    } label: {
+                        profileActionRow(title: String(localized: "nav.insights"), icon: "lightbulb.max.fill")
+                    }
+                    NavigationLink {
                         OnboardingView()
                     } label: {
                         profileActionRow(title: String(localized: "nav.onboarding"), icon: "info.circle.fill")

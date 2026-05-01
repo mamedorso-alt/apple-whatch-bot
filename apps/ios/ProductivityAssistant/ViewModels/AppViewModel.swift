@@ -17,8 +17,12 @@ final class AppViewModel: ObservableObject {
     @Published var hasTodayScore = false
     @Published var weeklyActivity: [WeeklyActivityPoint] = []
     @Published var weeklyActivityRangeDays = 7
+    @Published var userProfile: UserProfileDTO?
+    @Published var dailyInsightText: String = ""
+    @Published var weeklyInsightText: String = ""
 
     let syncManager = SyncManager()
+    private var autoSyncStarted = false
 
     func requestHealthAccess() async {
         await run {
@@ -38,6 +42,47 @@ final class AppViewModel: ObservableObject {
                 let response = try await ApiClient.shared.getTodayReport(apiToken: token)
                 todayReport = response.report
             }
+        }
+        await fetchDailyInsightPreview()
+    }
+
+    func performBackgroundSync() async {
+        do {
+            let token = try await ensureToken()
+            let syncedAt = try await syncManager.syncToday(apiToken: token)
+            lastSyncAt = syncedAt
+            UserDefaults.standard.set(syncedAt, forKey: "last_sync_at")
+            try await refreshStatusInternal(apiToken: token)
+        } catch {
+            // Keep background sync best-effort; foreground screens will surface errors.
+        }
+    }
+
+    func autoSyncIfStale(maxAgeMinutes: Int = 20) async {
+        if isLoading {
+            return
+        }
+        let threshold = Date().addingTimeInterval(TimeInterval(-max(1, maxAgeMinutes) * 60))
+        if let lastSyncAt, lastSyncAt > threshold {
+            return
+        }
+        await performBackgroundSync()
+    }
+
+    func startAutomaticHealthSync() async {
+        if autoSyncStarted {
+            return
+        }
+        autoSyncStarted = true
+        do {
+            try await syncManager.startHealthBackgroundUpdates { [weak self] in
+                guard let self else { return }
+                Task { @MainActor in
+                    await self.performBackgroundSync()
+                }
+            }
+        } catch {
+            // Keep app functional even if HealthKit background observers fail.
         }
     }
 
@@ -70,11 +115,84 @@ final class AppViewModel: ObservableObject {
             let token = try await ensureToken()
             try await refreshStatusInternal(apiToken: token)
         }
+        await fetchDailyInsightPreview()
     }
 
     func fetchWeeklyActivity() async {
         await run {
             weeklyActivity = try await syncManager.fetchWeeklyActivity(days: weeklyActivityRangeDays)
+        }
+    }
+
+    func loadUserProfile() async {
+        await run {
+            let token = try await ensureToken()
+            userProfile = try await ApiClient.shared.getUserProfile(apiToken: token)
+        }
+    }
+
+    func saveUserProfile(patch: UserProfilePatch) async {
+        await run {
+            let token = try await ensureToken()
+            userProfile = try await ApiClient.shared.patchUserProfile(apiToken: token, patch: patch)
+        }
+    }
+
+    func postUserWeight(weightKg: Double) async {
+        await run {
+            let token = try await ensureToken()
+            userProfile = try await ApiClient.shared.postProfileWeight(apiToken: token, weightKg: weightKg)
+        }
+    }
+
+    /// Logs subjective stress/fatigue for the user's current local calendar day.
+    func postTodaySubjective(stress: Int, fatigue: Int, note: String?) async {
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        do {
+            let token = try await ensureToken()
+            let dateStr = AppViewModel.isoDateLocal(Date())
+            let payload = SubjectiveDailyPayload(
+                date: dateStr,
+                stress: stress,
+                fatigue: fatigue,
+                note: note
+            )
+            _ = try await ApiClient.shared.postProfileSubjective(apiToken: token, payload: payload)
+        } catch {
+            errorMessage = mapErrorMessage(error)
+        }
+    }
+
+    private static func isoDateLocal(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.calendar = Calendar(identifier: .gregorian)
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.timeZone = TimeZone.current
+        f.dateFormat = "yyyy-MM-dd"
+        return f.string(from: date)
+    }
+
+    func fetchInsights() async {
+        await run {
+            let token = try await ensureToken()
+            async let daily = ApiClient.shared.getDailyInsights(apiToken: token)
+            async let weekly = ApiClient.shared.getWeeklyInsights(apiToken: token)
+            let (d, w) = try await (daily, weekly)
+            dailyInsightText = d.text
+            weeklyInsightText = w.text
+        }
+    }
+
+    /// Dashboard preview: daily insight only. Does not toggle `isLoading` or set `errorMessage` so it never masks sync/status errors.
+    func fetchDailyInsightPreview() async {
+        do {
+            let token = try await ensureToken()
+            let d = try await ApiClient.shared.getDailyInsights(apiToken: token)
+            dailyInsightText = d.text
+        } catch {
+            // Keep prior text on failure; first-load empty shows placeholder in UI.
         }
     }
 

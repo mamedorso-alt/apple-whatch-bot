@@ -8,6 +8,14 @@
 
 /* Begin PBXBuildFile section */
 		0D893998CBB3C416943D97B8 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7AC18BFB9D7F3029C5F03EC4 /* OnboardingView.swift */; };
+		D7D8E9F0A1B2C3D4E5F60701 /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60701 /* DashboardView.swift */; };
+		D7D8E9F0A1B2C3D4E5F60702 /* WeeklyActivityChartsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60702 /* WeeklyActivityChartsView.swift */; };
+		D7D8E9F0A1B2C3D4E5F60703 /* ProfileHubView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60703 /* ProfileHubView.swift */; };
+		D7D8E9F0A1B2C3D4E5F60704 /* UIComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60704 /* UIComponents.swift */; };
+		D7D8E9F0A1B2C3D4E5F60705 /* BackgroundSyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60705 /* BackgroundSyncManager.swift */; };
+		D7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift */; };
+		D7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift */; };
+		D7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift */; };
 		29CA706FE70191B8A78DF114 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFEB940484C02852395E3C2 /* AppViewModel.swift */; };
 		34C6995239E5BEC1AA2712B2 /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8DD5FB02FC3CB994B39C1F7 /* SyncStatusView.swift */; };
 		498D3204BF39B47B69E6BEF1 /* TelegramLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10864AB0CA851B9783757D31 /* TelegramLinkView.swift */; };
@@ -29,6 +37,14 @@
 		290939B6CE01592E4BD245E2 /* ProductivityAssistantApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductivityAssistantApp.swift; sourceTree = "<group>"; };
 		3A056D47E356D9E817873F04 /* ReportsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReportsView.swift; sourceTree = "<group>"; };
 		42DACCB95CC085E6F0D369D9 /* DailyPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyPayload.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60701 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60702 /* WeeklyActivityChartsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyActivityChartsView.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60703 /* ProfileHubView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileHubView.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60704 /* UIComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIComponents.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60705 /* BackgroundSyncManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundSyncManager.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyActivityPoint.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProfileView.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		48269DEE5872966DA6E2189F /* ProductivityAssistant.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProductivityAssistant.entitlements; sourceTree = "<group>"; };
 		4B22769CAD39AC3EAF9594C8 /* RootContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootContentView.swift; sourceTree = "<group>"; };
 		57F710286D7DD399A41500F0 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -54,12 +70,18 @@
 		3390B8A6CB6607BFBD024928 /* Views */ = {
 			isa = PBXGroup;
 			children = (
+				C7D8E9F0A1B2C3D4E5F60701 /* DashboardView.swift */,
 				992AAE662A2021F7D19E7611 /* HealthAccessView.swift */,
+				C7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift */,
+				C7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift */,
 				7AC18BFB9D7F3029C5F03EC4 /* OnboardingView.swift */,
+				C7D8E9F0A1B2C3D4E5F60703 /* ProfileHubView.swift */,
 				3A056D47E356D9E817873F04 /* ReportsView.swift */,
 				4B22769CAD39AC3EAF9594C8 /* RootContentView.swift */,
 				C8DD5FB02FC3CB994B39C1F7 /* SyncStatusView.swift */,
 				10864AB0CA851B9783757D31 /* TelegramLinkView.swift */,
+				C7D8E9F0A1B2C3D4E5F60704 /* UIComponents.swift */,
+				C7D8E9F0A1B2C3D4E5F60702 /* WeeklyActivityChartsView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -68,6 +90,7 @@
 			isa = PBXGroup;
 			children = (
 				DA0AA7B5FFC103352BE140E8 /* ApiClient.swift */,
+				C7D8E9F0A1B2C3D4E5F60705 /* BackgroundSyncManager.swift */,
 				1AF4268E51DA16CFF9650C7B /* HealthKitService.swift */,
 				88C881345D2139F26F72AB47 /* SyncManager.swift */,
 			);
@@ -78,6 +101,7 @@
 			isa = PBXGroup;
 			children = (
 				42DACCB95CC085E6F0D369D9 /* DailyPayload.swift */,
+				C7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -187,16 +211,24 @@
 			files = (
 				6FCDC07478E744766F8B1037 /* ApiClient.swift in Sources */,
 				29CA706FE70191B8A78DF114 /* AppViewModel.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60705 /* BackgroundSyncManager.swift in Sources */,
 				60D778B563DDDF9FBF8A5F81 /* DailyPayload.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60701 /* DashboardView.swift in Sources */,
 				BD4E70DEF4308EBC5CE1EDCE /* HealthAccessView.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift in Sources */,
 				F8ADE68A29F9F6C16E8C9EB6 /* HealthKitService.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift in Sources */,
 				0D893998CBB3C416943D97B8 /* OnboardingView.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60703 /* ProfileHubView.swift in Sources */,
 				9CD5BD5BD65FC8D463EF7FE3 /* ProductivityAssistantApp.swift in Sources */,
 				BE0B49087C34D034AD8EC54F /* ReportsView.swift in Sources */,
 				6D24CC8B5DFCDEF35F59651B /* RootContentView.swift in Sources */,
 				C470FED76E3148F2E923283F /* SyncManager.swift in Sources */,
 				34C6995239E5BEC1AA2712B2 /* SyncStatusView.swift in Sources */,
 				498D3204BF39B47B69E6BEF1 /* TelegramLinkView.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60704 /* UIComponents.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60702 /* WeeklyActivityChartsView.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

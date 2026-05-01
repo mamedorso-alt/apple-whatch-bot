@@ -4,12 +4,13 @@ from datetime import datetime, timezone
 from types import SimpleNamespace
 from uuid import uuid4
 
-from app.db.models import DailyMetric, DailyScore, LinkCode, MessageLog, User
+from app.db.models import DailyMetric, DailyScore, LinkCode, MessageLog, User, UserBodyMetric, UserProfile, UserSubjectiveDaily
 
 
 class FakeQuery:
     def __init__(self, items):
         self._items = list(items)
+        self._count_override: int | None = None
 
     def filter(self, *_args, **_kwargs):
         return self
@@ -19,6 +20,11 @@ class FakeQuery:
 
     def first(self):
         return self._items[0] if self._items else None
+
+    def count(self):
+        if self._count_override is not None:
+            return self._count_override
+        return len(self._items)
 
     def all(self):
         return list(self._items)
@@ -31,6 +37,9 @@ class FakeSession:
         self.daily_metrics: list[DailyMetric] = []
         self.daily_scores: list[DailyScore] = []
         self.message_logs: list[MessageLog] = []
+        self.user_profiles: list[UserProfile] = []
+        self.user_body_metrics: list[UserBodyMetric] = []
+        self.user_subjective: list[UserSubjectiveDaily] = []
 
     def query(self, model):
         mapping = {
@@ -39,6 +48,9 @@ class FakeSession:
             DailyMetric: self.daily_metrics,
             DailyScore: self.daily_scores,
             MessageLog: self.message_logs,
+            UserProfile: self.user_profiles,
+            UserBodyMetric: self.user_body_metrics,
+            UserSubjectiveDaily: self.user_subjective,
         }
         return FakeQuery(mapping.get(model, []))
 
@@ -53,6 +65,12 @@ class FakeSession:
             self.daily_scores.append(obj)
         elif isinstance(obj, MessageLog):
             self.message_logs.append(obj)
+        elif isinstance(obj, UserProfile):
+            self.user_profiles.append(obj)
+        elif isinstance(obj, UserBodyMetric):
+            self.user_body_metrics.append(obj)
+        elif isinstance(obj, UserSubjectiveDaily):
+            self.user_subjective.append(obj)
 
     def commit(self):
         return None

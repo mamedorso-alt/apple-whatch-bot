@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time, timezone
 from typing import Any
 
 import httpx
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.db.models import DailyMetric, DailyScore, User
+from app.db.models import DailyMetric, DailyScore, MealLog, User, UserProfile, UserSubjectiveDaily
+from app.services.user_profile_service import profile_to_read
 
 settings = get_settings()
 
@@ -108,6 +109,40 @@ def _collect_context(db: Session, user: User) -> dict[str, Any]:
         }
         for m in metrics
     ]
+    prof_row = db.query(UserProfile).filter(UserProfile.user_id == user.id).first()
+    profile_summary = profile_to_read(prof_row) if prof_row else None
+    meal_since = datetime.combine(start_date, time.min, tzinfo=timezone.utc)
+    meals = (
+        db.query(MealLog)
+        .filter(MealLog.user_id == user.id, MealLog.logged_at >= meal_since)
+        .order_by(MealLog.logged_at.desc())
+        .limit(12)
+        .all()
+    )
+    recent_meals = [
+        {
+            "logged_at": str(m.logged_at.date()),
+            "kcal": m.user_adjusted_kcal or m.estimated_kcal,
+            "meal_type": m.meal_type,
+            "confirmed": m.user_confirmed,
+        }
+        for m in meals
+    ]
+    subjective_rows = (
+        db.query(UserSubjectiveDaily)
+        .filter(UserSubjectiveDaily.user_id == user.id, UserSubjectiveDaily.date >= start_date, UserSubjectiveDaily.date <= today)
+        .order_by(UserSubjectiveDaily.date.asc())
+        .all()
+    )
+    subjective_daily = [
+        {
+            "date": str(r.date),
+            "stress_0_5": r.stress_0_5,
+            "fatigue_0_5": r.fatigue_0_5,
+            "note": (r.note or "")[:200],
+        }
+        for r in subjective_rows
+    ]
     return {
         "today": str(today),
         "today_score": today_score,
@@ -116,6 +151,9 @@ def _collect_context(db: Session, user: User) -> dict[str, Any]:
         "avg_steps": avg_steps,
         "scores": compact_scores,
         "metrics": compact_metrics,
+        "profile": profile_summary,
+        "recent_meals": recent_meals,
+        "subjective_daily": subjective_daily,
     }
 
 
@@ -124,7 +162,8 @@ async def _generate_with_anthropic(lang: str, context: dict[str, Any]) -> str:
         raise RuntimeError("Anthropic API key is not configured")
 
     system_prompt = (
-        "You are a productivity coach. Use only provided aggregated health and score data. "
+        "You are a productivity coach. Use only provided aggregated health, score, and self-report data. "
+        "If subjective_daily includes stress/fatigue (0-5), factor it gently into load and recovery suggestions. "
         "Do not provide medical diagnosis. Keep response clean, compact and practical.\n"
         "Always follow this format exactly:\n"
         "1) Title line with one emoji.\n"
@@ -172,7 +211,7 @@ async def _generate_chat_with_anthropic(lang: str, context: dict[str, Any], user
 
     system_prompt = (
         "You are a concise productivity coach. "
-        "Use only provided health/score context and user message. "
+        "Use only provided health/score/subjective context and user message. "
         "Do not provide medical diagnosis. Give practical, concrete advice.\n"
         "Formatting rules: short paragraphs, clean bullets when useful, no markdown separators (---), no noisy symbols."
     )

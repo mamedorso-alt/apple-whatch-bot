@@ -35,4 +35,8 @@ final class SyncManager {
     func fetchWeeklyActivity(days: Int) async throws -> [WeeklyActivityPoint] {
         try await healthKitService.weeklyActivity(days: days)
     }
+
+    func startHealthBackgroundUpdates(onChange: @escaping @Sendable () -> Void) async throws {
+        try await healthKitService.startBackgroundDelivery(onChange: onChange)
+    }
 }

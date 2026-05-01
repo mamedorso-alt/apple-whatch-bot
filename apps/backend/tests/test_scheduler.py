@@ -78,6 +78,11 @@ def test_scheduler_dedup_same_day(monkeypatch):
     monkeypatch.setattr("app.services.scheduler.send_telegram_message", fake_send_message)
     monkeypatch.setattr("app.services.scheduler._message_type_for_local_time", lambda _dt: "morning")
 
+    async def _no_smart(_db):
+        return {"sent": 0, "skipped": 0}
+
+    monkeypatch.setattr("app.services.scheduler.run_smart_alerts", _no_smart)
+
     asyncio.run(run_scheduled_reports(db))
     asyncio.run(run_scheduled_reports(db))
 
