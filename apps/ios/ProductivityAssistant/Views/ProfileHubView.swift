@@ -68,6 +68,12 @@ struct ProfileHubView: View {
                     }
                     .buttonStyle(.plain)
                 }
+
+                Text(AppVersion.fullLabel)
+                    .font(.caption2.monospacedDigit())
+                    .foregroundStyle(.white.opacity(0.35))
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 8)
             }
             .padding()
         }

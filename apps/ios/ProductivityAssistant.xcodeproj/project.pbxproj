@@ -30,6 +30,7 @@
 		BE0B49087C34D034AD8EC54F /* ReportsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A056D47E356D9E817873F04 /* ReportsView.swift */; };
 		C470FED76E3148F2E923283F /* SyncManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88C881345D2139F26F72AB47 /* SyncManager.swift */; };
 		F8ADE68A29F9F6C16E8C9EB6 /* HealthKitService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AF4268E51DA16CFF9650C7B /* HealthKitService.swift */; };
+		F1E2D3C4B5A6978811223344 /* AppVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1D2C3B4A5968778F0E1D2C3 /* AppVersion.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +61,7 @@
 		C8DD5FB02FC3CB994B39C1F7 /* SyncStatusView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncStatusView.swift; sourceTree = "<group>"; };
 		DA0AA7B5FFC103352BE140E8 /* ApiClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApiClient.swift; sourceTree = "<group>"; };
 		E8EE5F41E976FE5C39E21996 /* ProductivityAssistant.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = ProductivityAssistant.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		E1D2C3B4A5968778F0E1D2C3 /* AppVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppVersion.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -127,6 +129,14 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		A5968778B0E1D2C3A4142434 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				E1D2C3B4A5968778F0E1D2C3 /* AppVersion.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
 		C82C337A48D45333B89E0203 /* ProductivityAssistant */ = {
 			isa = PBXGroup;
 			children = (
@@ -137,6 +147,7 @@
 				6D756922C44BF6CEBD93606E /* Localizable.strings */,
 				82023287A71EE35441B9520A /* Models */,
 				453DF367611E15598F4B717D /* Services */,
+				A5968778B0E1D2C3A4142434 /* Support */,
 				861C9B85E2D13CE46C36913C /* ViewModels */,
 				3390B8A6CB6607BFBD024928 /* Views */,
 			);
@@ -174,7 +185,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					68E72DA06EDE193936000B6B = {
-						DevelopmentTeam = "";
+						DevelopmentTeam = Z243QWWKGL;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -216,6 +227,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F1E2D3C4B5A6978811223344 /* AppVersion.swift in Sources */,
 				6FCDC07478E744766F8B1037 /* ApiClient.swift in Sources */,
 				29CA706FE70191B8A78DF114 /* AppViewModel.swift in Sources */,
 				D7D8E9F0A1B2C3D4E5F60705 /* BackgroundSyncManager.swift in Sources */,
@@ -319,7 +331,7 @@
 				CODE_SIGN_ENTITLEMENTS = ProductivityAssistant/ProductivityAssistant.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Z243QWWKGL;
 				INFOPLIST_FILE = ProductivityAssistant/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -337,7 +349,7 @@
 				CODE_SIGN_ENTITLEMENTS = ProductivityAssistant/ProductivityAssistant.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = "";
+				DEVELOPMENT_TEAM = Z243QWWKGL;
 				INFOPLIST_FILE = ProductivityAssistant/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
