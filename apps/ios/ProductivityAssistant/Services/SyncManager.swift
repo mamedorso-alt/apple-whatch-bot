@@ -19,7 +19,7 @@ final class SyncManager {
     }
 
     func syncToday(apiToken: String) async throws -> Date {
-        let payload = try await healthKitService.dailyPayload()
+        let payload = await healthKitService.dailyPayload()
         try await apiClient.sendDailyMetrics(payload: payload, apiToken: apiToken)
         return Date()
     }
@@ -36,11 +36,11 @@ final class SyncManager {
         try await healthKitService.hasCompletedAuthorizationPrompt()
     }
 
-    func fetchWeeklyActivity(days: Int) async throws -> [WeeklyActivityPoint] {
-        try await healthKitService.weeklyActivity(days: days)
+    func fetchWeeklyActivity(days: Int) async -> [WeeklyActivityPoint] {
+        await healthKitService.weeklyActivity(days: days)
     }
 
-    func startHealthBackgroundUpdates(onChange: @escaping @Sendable () -> Void) async throws {
-        try await healthKitService.startBackgroundDelivery(onChange: onChange)
+    func startHealthBackgroundUpdates(onChange: @escaping @Sendable () -> Void) async {
+        await healthKitService.startBackgroundDelivery(onChange: onChange)
     }
 }

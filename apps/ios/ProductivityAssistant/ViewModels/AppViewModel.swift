@@ -100,15 +100,11 @@ final class AppViewModel: ObservableObject {
             return
         }
         autoSyncStarted = true
-        do {
-            try await syncManager.startHealthBackgroundUpdates { [weak self] in
-                guard let self else { return }
-                Task { @MainActor in
-                    await self.performBackgroundSync()
-                }
+        await syncManager.startHealthBackgroundUpdates { [weak self] in
+            guard let self else { return }
+            Task { @MainActor in
+                await self.performBackgroundSync()
             }
-        } catch {
-            // Keep app functional even if HealthKit background observers fail.
         }
     }
 
@@ -145,9 +141,10 @@ final class AppViewModel: ObservableObject {
     }
 
     func fetchWeeklyActivity() async {
-        await run {
-            weeklyActivity = try await syncManager.fetchWeeklyActivity(days: weeklyActivityRangeDays)
-        }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+        weeklyActivity = await syncManager.fetchWeeklyActivity(days: weeklyActivityRangeDays)
     }
 
     func loadUserProfile() async {

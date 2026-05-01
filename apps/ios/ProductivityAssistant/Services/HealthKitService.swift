@@ -1,14 +1,15 @@
 import Foundation
 import HealthKit
+import OSLog
 
 final class HealthKitService {
     private let store = HKHealthStore()
     private var observerQueries: [HKObserverQuery] = []
     private var onBackgroundChange: (@Sendable () -> Void)?
+    private let log = Logger(subsystem: "com.productivity.assistant", category: "healthkit")
 
     private var readTypes: Set<HKObjectType> {
         var types = Set<HKObjectType>()
-        // Omit `heartRate` — we never query it; extra toggles in Settings confuse users when denied.
         let quantityTypes: [HKQuantityTypeIdentifier] = [
             .stepCount,
             .activeEnergyBurned,
@@ -36,8 +37,6 @@ final class HealthKitService {
         try await store.requestAuthorization(toShare: Set<HKSampleType>(), read: readTypes)
     }
 
-    /// `true` when the Health permission sheet has already been shown for these read types (`unnecessary`),
-    /// i.e. the user configured access in the app or in Settings — **not** a guarantee every toggle is on.
     func hasCompletedAuthorizationPrompt() async throws -> Bool {
         guard HKHealthStore.isHealthDataAvailable() else { return false }
         return try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Bool, Error>) in
@@ -60,7 +59,8 @@ final class HealthKitService {
         }
     }
 
-    func startBackgroundDelivery(onChange: @escaping @Sendable () -> Void) async throws {
+    /// Observers + background delivery are best-effort; never fail the app if HealthKit rejects a type.
+    func startBackgroundDelivery(onChange: @escaping @Sendable () -> Void) async {
         guard HKHealthStore.isHealthDataAvailable() else {
             return
         }
@@ -80,9 +80,7 @@ final class HealthKitService {
                 store.execute(query)
                 try await store.enableBackgroundDelivery(for: sampleType, frequency: .immediate)
             } catch {
-                if Self.shouldTreatQueryErrorAsEmptyData(error) == false {
-                    throw error
-                }
+                log.warning("Background delivery skipped for a type: \(error.localizedDescription, privacy: .public)")
             }
         }
     }
@@ -94,34 +92,17 @@ final class HealthKitService {
         observerQueries.removeAll()
     }
 
-    /// JSON and the backend reject NaN/inf; HealthKit can rarely return non-finite doubles.
     private static func finiteDouble(_ value: Double?) -> Double? {
         guard let value, value.isFinite else { return nil }
         return value
     }
 
-    /// Per-type queries can fail with auth errors while steps are still allowed. Treat as “no data” for that type so sync can complete.
-    private static func shouldTreatQueryErrorAsEmptyData(_ error: Error) -> Bool {
-        let ns = error as NSError
-        guard ns.domain == HKError.errorDomain,
-              let code = HKError.Code(rawValue: ns.code)
-        else { return false }
-        switch code {
-        case .errorAuthorizationDenied,
-             .errorAuthorizationNotDetermined:
-            return true
-        case .errorHealthDataUnavailable,
-             .errorHealthDataRestricted:
-            return true
-        default:
-            return false
-        }
-    }
-
-    func dailyPayload(for day: Date = Date(), timezone: TimeZone = .current) async throws -> DailyPayload {
+    /// Builds today’s payload. **Never throws** — any HealthKit failure becomes zeros so `/v1/health/daily` can still run.
+    func dailyPayload(for day: Date = Date(), timezone: TimeZone = .current) async -> DailyPayload {
         let calendar = Calendar.current
         let startOfDay = calendar.startOfDay(for: day)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? day
+        let dateString = isoDate(startOfDay)
 
         async let steps = sumQuantity(.stepCount, unit: HKUnit.count(), start: startOfDay, end: endOfDay)
         async let activeKcal = sumQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: startOfDay, end: endOfDay)
@@ -130,14 +111,13 @@ final class HealthKitService {
         async let hrv = averageQuantity(.heartRateVariabilitySDNN, unit: HKUnit.secondUnit(with: .milli), start: startOfDay, end: endOfDay)
         async let workouts = workoutsCount(start: startOfDay, end: endOfDay)
 
-        let sleep = try await sleepData
-        let dateString = isoDate(startOfDay)
+        let sleep = await sleepData
 
-        let stepsVal = max(0, Int(try await steps))
-        let kcalVal = Self.finiteDouble(try await activeKcal) ?? 0
+        let stepsVal = max(0, Int(await steps))
+        let kcalVal = Self.finiteDouble(await activeKcal) ?? 0
         let sleepMinVal = max(0, Int(min(sleep.minutes, Double(Int.max))))
-        let resting = try await restingHR
-        let hrvVal = try await hrv
+        let resting = await restingHR
+        let hrvVal = await hrv
 
         return DailyPayload(
             date: dateString,
@@ -149,11 +129,11 @@ final class HealthKitService {
             sleepEnd: sleep.end.map(isoDateTime),
             restingHr: Self.finiteDouble(resting),
             hrvSdnn: Self.finiteDouble(hrvVal),
-            workoutsCount: max(0, try await workouts)
+            workoutsCount: max(0, await workouts)
         )
     }
 
-    func weeklyActivity(days: Int = 7, endingAt day: Date = Date(), timezone: TimeZone = .current) async throws -> [WeeklyActivityPoint] {
+    func weeklyActivity(days: Int = 7, endingAt day: Date = Date(), timezone: TimeZone = .current) async -> [WeeklyActivityPoint] {
         let safeDays = max(1, days)
         let calendar = Calendar.current
         let endDayStart = calendar.startOfDay(for: day)
@@ -166,8 +146,8 @@ final class HealthKitService {
                 continue
             }
 
-            let steps = try await sumQuantity(.stepCount, unit: HKUnit.count(), start: currentDay, end: nextDay)
-            let kcal = try await sumQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: currentDay, end: nextDay)
+            let steps = await sumQuantity(.stepCount, unit: HKUnit.count(), start: currentDay, end: nextDay)
+            let kcal = await sumQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: currentDay, end: nextDay)
             points.append(
                 WeeklyActivityPoint(
                     date: currentDay,
@@ -179,17 +159,14 @@ final class HealthKitService {
         return points
     }
 
-    private func sumQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async throws -> Double {
+    private func sumQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double {
         guard let type = HKObjectType.quantityType(forIdentifier: id) else { return 0 }
-        return try await withCheckedThrowingContinuation { continuation in
+        return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
                 if let error {
-                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
-                        continuation.resume(returning: 0)
-                    } else {
-                        continuation.resume(throwing: error)
-                    }
+                    self.log.warning("HK cumulativeSum \(String(describing: id), privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    continuation.resume(returning: 0)
                     return
                 }
                 let value = result?.sumQuantity()?.doubleValue(for: unit) ?? 0
@@ -199,17 +176,14 @@ final class HealthKitService {
         }
     }
 
-    private func averageQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async throws -> Double? {
+    private func averageQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double? {
         guard let type = HKObjectType.quantityType(forIdentifier: id) else { return nil }
-        return try await withCheckedThrowingContinuation { continuation in
+        return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, error in
                 if let error {
-                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
-                        continuation.resume(returning: nil)
-                    } else {
-                        continuation.resume(throwing: error)
-                    }
+                    self.log.warning("HK average \(String(describing: id), privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    continuation.resume(returning: nil)
                     return
                 }
                 let value = result?.averageQuantity()?.doubleValue(for: unit)
@@ -219,16 +193,13 @@ final class HealthKitService {
         }
     }
 
-    private func workoutsCount(start: Date, end: Date) async throws -> Int {
-        try await withCheckedThrowingContinuation { continuation in
+    private func workoutsCount(start: Date, end: Date) async -> Int {
+        await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
                 if let error {
-                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
-                        continuation.resume(returning: 0)
-                    } else {
-                        continuation.resume(throwing: error)
-                    }
+                    self.log.warning("HK workouts: \(error.localizedDescription, privacy: .public)")
+                    continuation.resume(returning: 0)
                     return
                 }
                 continuation.resume(returning: samples?.count ?? 0)
@@ -237,7 +208,6 @@ final class HealthKitService {
         }
     }
 
-    /// Raw values for time actually asleep (Apple Watch uses stage samples, not legacy `.asleep` only).
     private static let asleepStageRawValues: Set<Int> = [
         HKCategoryValueSleepAnalysis.asleep.rawValue,
         HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
@@ -246,9 +216,7 @@ final class HealthKitService {
         HKCategoryValueSleepAnalysis.asleepREM.rawValue,
     ]
 
-    /// Sleep attributed to calendar `day`: main night is usually recorded starting the evening before.
-    /// We fetch a wide window, cluster asleep segments into sessions, and pick sessions whose end falls on this day (wake-up day).
-    private func sleepDuration(start: Date, end: Date) async throws -> (minutes: Double, start: Date?, end: Date?) {
+    private func sleepDuration(start: Date, end: Date) async -> (minutes: Double, start: Date?, end: Date?) {
         guard let sleepType = HKObjectType.categoryType(forIdentifier: .sleepAnalysis) else {
             return (0, nil, nil)
         }
@@ -258,15 +226,12 @@ final class HealthKitService {
             return (0, nil, nil)
         }
 
-        return try await withCheckedThrowingContinuation { continuation in
+        return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: [])
             let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
                 if let error {
-                    if Self.shouldTreatQueryErrorAsEmptyData(error) {
-                        continuation.resume(returning: (0, nil, nil))
-                    } else {
-                        continuation.resume(throwing: error)
-                    }
+                    self.log.warning("HK sleep: \(error.localizedDescription, privacy: .public)")
+                    continuation.resume(returning: (0, nil, nil))
                     return
                 }
                 let entries = (samples as? [HKCategorySample]) ?? []
