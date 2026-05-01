@@ -5,7 +5,6 @@ import OSLog
 final class HealthKitService {
     private let store = HKHealthStore()
     private var observerQueries: [HKObserverQuery] = []
-    private var onBackgroundChange: (@Sendable () -> Void)?
     private let log = Logger(subsystem: "com.productivity.assistant", category: "healthkit")
 
     private var readTypes: Set<HKObjectType> {
@@ -64,16 +63,13 @@ final class HealthKitService {
         guard HKHealthStore.isHealthDataAvailable() else {
             return
         }
-        onBackgroundChange = onChange
         stopBackgroundDelivery()
 
         for objectType in readTypes {
             guard let sampleType = objectType as? HKSampleType else { continue }
             do {
-                let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completionHandler, _ in
-                    if let callback = self?.onBackgroundChange {
-                        callback()
-                    }
+                let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { _, completionHandler, _ in
+                    onChange()
                     completionHandler()
                 }
                 observerQueries.append(query)
@@ -161,11 +157,12 @@ final class HealthKitService {
 
     private func sumQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double {
         guard let type = HKObjectType.quantityType(forIdentifier: id) else { return 0 }
+        let logger = log
         return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, result, error in
                 if let error {
-                    self.log.warning("HK cumulativeSum \(String(describing: id), privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    logger.warning("HK cumulativeSum \(String(describing: id), privacy: .public): \(error.localizedDescription, privacy: .public)")
                     continuation.resume(returning: 0)
                     return
                 }
@@ -178,11 +175,12 @@ final class HealthKitService {
 
     private func averageQuantity(_ id: HKQuantityTypeIdentifier, unit: HKUnit, start: Date, end: Date) async -> Double? {
         guard let type = HKObjectType.quantityType(forIdentifier: id) else { return nil }
+        let logger = log
         return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .discreteAverage) { _, result, error in
                 if let error {
-                    self.log.warning("HK average \(String(describing: id), privacy: .public): \(error.localizedDescription, privacy: .public)")
+                    logger.warning("HK average \(String(describing: id), privacy: .public): \(error.localizedDescription, privacy: .public)")
                     continuation.resume(returning: nil)
                     return
                 }
@@ -194,11 +192,12 @@ final class HealthKitService {
     }
 
     private func workoutsCount(start: Date, end: Date) async -> Int {
-        await withCheckedContinuation { continuation in
+        let logger = log
+        return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
             let query = HKSampleQuery(sampleType: .workoutType(), predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
                 if let error {
-                    self.log.warning("HK workouts: \(error.localizedDescription, privacy: .public)")
+                    logger.warning("HK workouts: \(error.localizedDescription, privacy: .public)")
                     continuation.resume(returning: 0)
                     return
                 }
@@ -209,7 +208,6 @@ final class HealthKitService {
     }
 
     private static let asleepStageRawValues: Set<Int> = [
-        HKCategoryValueSleepAnalysis.asleep.rawValue,
         HKCategoryValueSleepAnalysis.asleepUnspecified.rawValue,
         HKCategoryValueSleepAnalysis.asleepCore.rawValue,
         HKCategoryValueSleepAnalysis.asleepDeep.rawValue,
@@ -226,11 +224,12 @@ final class HealthKitService {
             return (0, nil, nil)
         }
 
+        let logger = log
         return await withCheckedContinuation { continuation in
             let predicate = HKQuery.predicateForSamples(withStart: queryStart, end: queryEnd, options: [])
             let query = HKSampleQuery(sampleType: sleepType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
                 if let error {
-                    self.log.warning("HK sleep: \(error.localizedDescription, privacy: .public)")
+                    logger.warning("HK sleep: \(error.localizedDescription, privacy: .public)")
                     continuation.resume(returning: (0, nil, nil))
                     return
                 }
