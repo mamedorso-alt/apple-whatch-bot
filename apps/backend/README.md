@@ -102,3 +102,7 @@
    - `/link CODE` -> user linked
    - `/today`, `/week` -> report text
    - `/internal/run-scheduled` -> no duplicates in `message_log`
+
+## Деплой (CI)
+
+Пуш в `main` с изменениями под `apps/backend/**` запускает workflow `release-cd` (SSH на прод, `docker compose up --build`, `alembic upgrade head`). Секреты GitHub: см. `docs/CD_AUTOMATION.md`.
