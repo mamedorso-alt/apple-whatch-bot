@@ -16,6 +16,7 @@
 		D7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift */; };
 		D7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift */; };
 		D7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift */; };
+		D7D8E9F0A1B2C3D4E5F60709 /* AgentSpendView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C7D8E9F0A1B2C3D4E5F60709 /* AgentSpendView.swift */; };
 		29CA706FE70191B8A78DF114 /* AppViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BFEB940484C02852395E3C2 /* AppViewModel.swift */; };
 		34C6995239E5BEC1AA2712B2 /* SyncStatusView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8DD5FB02FC3CB994B39C1F7 /* SyncStatusView.swift */; };
 		498D3204BF39B47B69E6BEF1 /* TelegramLinkView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10864AB0CA851B9783757D31 /* TelegramLinkView.swift */; };
@@ -45,6 +46,7 @@
 		C7D8E9F0A1B2C3D4E5F60706 /* WeeklyActivityPoint.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyActivityPoint.swift; sourceTree = "<group>"; };
 		C7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthProfileView.swift; sourceTree = "<group>"; };
 		C7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		C7D8E9F0A1B2C3D4E5F60709 /* AgentSpendView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentSpendView.swift; sourceTree = "<group>"; };
 		48269DEE5872966DA6E2189F /* ProductivityAssistant.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ProductivityAssistant.entitlements; sourceTree = "<group>"; };
 		4B22769CAD39AC3EAF9594C8 /* RootContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootContentView.swift; sourceTree = "<group>"; };
 		57F710286D7DD399A41500F0 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -74,6 +76,7 @@
 				992AAE662A2021F7D19E7611 /* HealthAccessView.swift */,
 				C7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift */,
 				C7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift */,
+				C7D8E9F0A1B2C3D4E5F60709 /* AgentSpendView.swift */,
 				7AC18BFB9D7F3029C5F03EC4 /* OnboardingView.swift */,
 				C7D8E9F0A1B2C3D4E5F60703 /* ProfileHubView.swift */,
 				3A056D47E356D9E817873F04 /* ReportsView.swift */,
@@ -218,6 +221,7 @@
 				D7D8E9F0A1B2C3D4E5F60707 /* HealthProfileView.swift in Sources */,
 				F8ADE68A29F9F6C16E8C9EB6 /* HealthKitService.swift in Sources */,
 				D7D8E9F0A1B2C3D4E5F60708 /* InsightsView.swift in Sources */,
+				D7D8E9F0A1B2C3D4E5F60709 /* AgentSpendView.swift in Sources */,
 				0D893998CBB3C416943D97B8 /* OnboardingView.swift in Sources */,
 				D7D8E9F0A1B2C3D4E5F60703 /* ProfileHubView.swift in Sources */,
 				9CD5BD5BD65FC8D463EF7FE3 /* ProductivityAssistantApp.swift in Sources */,

@@ -110,6 +110,20 @@ struct InsightTextResponse: Codable {
     }
 }
 
+struct AgentSpendResponse: Codable {
+    let currency: String
+    let dayUsd: Double
+    let weekUsd: Double
+    let monthUsd: Double
+
+    enum CodingKeys: String, CodingKey {
+        case currency
+        case dayUsd = "day_usd"
+        case weekUsd = "week_usd"
+        case monthUsd = "month_usd"
+    }
+}
+
 struct WeightIngestPayload: Encodable {
     let weightKg: Double
 }

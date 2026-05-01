@@ -7,7 +7,10 @@ from typing import Any
 import httpx
 from sqlalchemy.orm import Session
 
+from uuid import UUID
+
 from app.core.config import get_settings
+from app.services.agent_usage import record_agent_usage
 from app.db.models import SalesSnapshot, User
 
 settings = get_settings()
@@ -99,7 +102,13 @@ def _build_fallback_summary(lang: str, context: dict[str, Any]) -> str:
     )
 
 
-async def _generate_sales_reply_with_anthropic(lang: str, context: dict[str, Any], user_message: str | None = None) -> str:
+async def _generate_sales_reply_with_anthropic(
+    lang: str,
+    context: dict[str, Any],
+    user_message: str | None = None,
+    *,
+    user_id: UUID | None = None,
+) -> str:
     if not settings.anthropic_api_key:
         raise RuntimeError("Anthropic API key is not configured")
 
@@ -132,15 +141,30 @@ async def _generate_sales_reply_with_anthropic(lang: str, context: dict[str, Any
         )
         response.raise_for_status()
         payload = response.json()
+        usage = payload.get("usage") or {}
+        in_t = int(usage.get("input_tokens") or 0)
+        out_t = int(usage.get("output_tokens") or 0)
         for block in payload.get("content", []):
             if block.get("type") == "text" and (block.get("text") or "").strip():
-                return (block.get("text") or "").strip()
+                text = (block.get("text") or "").strip()
+                if user_id is not None:
+                    record_agent_usage(
+                        user_id,
+                        provider="anthropic",
+                        model=settings.anthropic_model,
+                        operation="sales_reply",
+                        input_tokens=in_t,
+                        output_tokens=out_t,
+                    )
+                return text
     raise RuntimeError("Empty response from Anthropic")
 
 
 async def compose_sales_owner_reply(db: Session, user: User, user_message: str | None = None) -> str:
     context = _collect_sales_context(db, user)
     try:
-        return await _generate_sales_reply_with_anthropic(user.language, context, user_message)
+        return await _generate_sales_reply_with_anthropic(
+            user.language, context, user_message, user_id=user.id
+        )
     except Exception:
         return _build_fallback_summary(user.language, context)

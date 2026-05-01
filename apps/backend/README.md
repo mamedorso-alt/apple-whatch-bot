@@ -13,6 +13,7 @@
   - `GET /v1/reports/week`
   - `GET /v1/reports/coach` (AI coach, fallback если LLM недоступен)
   - `GET /v1/reports/status`
+  - `GET /v1/usage/spend` — оценка расходов на LLM (USD) за день / неделю / месяц в часовом поясе пользователя
 - `POST /v1/telegram/webhook` (`/start`, `/help`, `/link CODE`, `/lang`, `/today`, `/week`, `/coach`, `/ask`) + free-text AI chat + voice-to-text (if configured)
   - `POST /internal/run-scheduled` (manual scheduler trigger)
 - APScheduler worker (interval-based auto trigger)

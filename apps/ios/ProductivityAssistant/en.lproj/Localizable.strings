@@ -62,6 +62,14 @@
 "profile.card.quick_actions" = "Quick Actions";
 "nav.health_profile" = "Health profile";
 "nav.insights" = "Insights";
+"nav.agent_spend" = "AI usage ($)";
+
+"agent_spend.title" = "AI agent spend";
+"agent_spend.card.title" = "Estimated cost (USD)";
+"agent_spend.period.day" = "Today";
+"agent_spend.period.week" = "This week";
+"agent_spend.period.month" = "This month";
+"agent_spend.disclaimer" = "Approximate API cost from your usage (coach, Telegram AI, meal photos, voice). Not a bill from the provider.";
 
 "health_profile.title" = "Health profile";
 "health_profile.card.body" = "Goals & notes";

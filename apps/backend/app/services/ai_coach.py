@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from datetime import date, datetime, time, timezone
 from typing import Any
+from uuid import UUID
 
 import httpx
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.models import DailyMetric, DailyScore, MealLog, User, UserProfile, UserSubjectiveDaily
+from app.services.agent_usage import record_agent_usage
 from app.services.user_profile_service import profile_to_read
 
 settings = get_settings()
@@ -157,7 +159,18 @@ def _collect_context(db: Session, user: User) -> dict[str, Any]:
     }
 
 
-async def _generate_with_anthropic(lang: str, context: dict[str, Any]) -> str:
+def _anthropic_usage(body: dict[str, Any]) -> tuple[int, int]:
+    usage = body.get("usage") or {}
+    return int(usage.get("input_tokens") or 0), int(usage.get("output_tokens") or 0)
+
+
+async def _generate_with_anthropic(
+    lang: str,
+    context: dict[str, Any],
+    *,
+    user_id: UUID | None = None,
+    operation: str = "coach_report",
+) -> str:
     if not settings.anthropic_api_key:
         raise RuntimeError("Anthropic API key is not configured")
 
@@ -196,16 +209,32 @@ async def _generate_with_anthropic(lang: str, context: dict[str, Any]) -> str:
         )
         response.raise_for_status()
         body = response.json()
+        in_t, out_t = _anthropic_usage(body)
         content = body.get("content", [])
         for block in content:
             if block.get("type") == "text":
                 text = (block.get("text") or "").strip()
                 if text:
+                    if user_id is not None:
+                        record_agent_usage(
+                            user_id,
+                            provider="anthropic",
+                            model=settings.anthropic_model,
+                            operation=operation,
+                            input_tokens=in_t,
+                            output_tokens=out_t,
+                        )
                     return _clean_generated_text(text)
     raise RuntimeError("Empty response from Anthropic")
 
 
-async def _generate_chat_with_anthropic(lang: str, context: dict[str, Any], user_message: str) -> str:
+async def _generate_chat_with_anthropic(
+    lang: str,
+    context: dict[str, Any],
+    user_message: str,
+    *,
+    user_id: UUID | None = None,
+) -> str:
     if not settings.anthropic_api_key:
         raise RuntimeError("Anthropic API key is not configured")
 
@@ -239,11 +268,21 @@ async def _generate_chat_with_anthropic(lang: str, context: dict[str, Any], user
         )
         response.raise_for_status()
         body = response.json()
+        in_t, out_t = _anthropic_usage(body)
         content = body.get("content", [])
         for block in content:
             if block.get("type") == "text":
                 text = (block.get("text") or "").strip()
                 if text:
+                    if user_id is not None:
+                        record_agent_usage(
+                            user_id,
+                            provider="anthropic",
+                            model=settings.anthropic_model,
+                            operation="coach_chat",
+                            input_tokens=in_t,
+                            output_tokens=out_t,
+                        )
                     return _clean_generated_text(text)
     raise RuntimeError("Empty response from Anthropic")
 
@@ -255,7 +294,7 @@ async def compose_ai_coach_report(db: Session, user: User, day: date | None = No
     lang = user.language
 
     try:
-        return await _generate_with_anthropic(lang=lang, context=context)
+        return await _generate_with_anthropic(lang=lang, context=context, user_id=user.id, operation="coach_report")
     except Exception:
         return _fallback_coach_text(
             lang=lang,
@@ -271,7 +310,9 @@ async def compose_ai_chat_reply(db: Session, user: User, user_message: str, day:
     context = _collect_context(db, user)
     lang = user.language
     try:
-        return await _generate_chat_with_anthropic(lang=lang, context=context, user_message=user_message)
+        return await _generate_chat_with_anthropic(
+            lang=lang, context=context, user_message=user_message, user_id=user.id
+        )
     except Exception:
         base = _fallback_coach_text(
             lang=lang,

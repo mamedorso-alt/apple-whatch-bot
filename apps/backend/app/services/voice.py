@@ -1,13 +1,21 @@
 from __future__ import annotations
 
+from uuid import UUID
+
 import httpx
 
 from app.core.config import get_settings
+from app.services.agent_usage import record_agent_usage, whisper_cost_usd_from_bytes
 
 settings = get_settings()
 
 
-async def transcribe_telegram_media(file_id: str, fallback_filename: str = "voice.ogg") -> str:
+async def transcribe_telegram_media(
+    file_id: str,
+    fallback_filename: str = "voice.ogg",
+    *,
+    user_id: UUID | None = None,
+) -> str:
     if not settings.telegram_bot_token:
         raise RuntimeError("TELEGRAM_NOT_CONFIGURED")
     if not settings.openai_api_key:
@@ -42,4 +50,14 @@ async def transcribe_telegram_media(file_id: str, fallback_filename: str = "voic
         text = (stt_body.get("text") or "").strip()
         if not text:
             raise RuntimeError("VOICE_TRANSCRIPTION_FAILED")
+        if user_id is not None:
+            record_agent_usage(
+                user_id,
+                provider="openai",
+                model=settings.openai_stt_model,
+                operation="voice_stt",
+                input_tokens=0,
+                output_tokens=0,
+                cost_usd_override=whisper_cost_usd_from_bytes(len(audio_bytes)),
+            )
         return text

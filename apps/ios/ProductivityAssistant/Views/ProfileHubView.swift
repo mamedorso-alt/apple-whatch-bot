@@ -51,6 +51,11 @@ struct ProfileHubView: View {
                         profileActionRow(title: String(localized: "nav.insights"), icon: "lightbulb.max.fill")
                     }
                     NavigationLink {
+                        AgentSpendView(viewModel: viewModel)
+                    } label: {
+                        profileActionRow(title: String(localized: "nav.agent_spend"), icon: "dollarsign.circle.fill")
+                    }
+                    NavigationLink {
                         OnboardingView()
                     } label: {
                         profileActionRow(title: String(localized: "nav.onboarding"), icon: "info.circle.fill")

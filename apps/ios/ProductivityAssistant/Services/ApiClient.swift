@@ -149,6 +149,16 @@ final class ApiClient {
         return try apiDecoder.decode(InsightTextResponse.self, from: data)
     }
 
+    func getAgentSpend(apiToken: String) async throws -> AgentSpendResponse {
+        let url = baseURL.appending(path: "/v1/usage/spend")
+        var request = URLRequest(url: url)
+        request.httpMethod = "GET"
+        request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        try validate(response: response, data: data)
+        return try apiDecoder.decode(AgentSpendResponse.self, from: data)
+    }
+
     private func validate(response: URLResponse, data: Data) throws {
         guard let http = response as? HTTPURLResponse else { return }
         guard (200 ... 299).contains(http.statusCode) else {

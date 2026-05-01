@@ -20,6 +20,9 @@ final class AppViewModel: ObservableObject {
     @Published var userProfile: UserProfileDTO?
     @Published var dailyInsightText: String = ""
     @Published var weeklyInsightText: String = ""
+    @Published var agentSpendDayUsd: Double = 0
+    @Published var agentSpendWeekUsd: Double = 0
+    @Published var agentSpendMonthUsd: Double = 0
 
     let syncManager = SyncManager()
     private var autoSyncStarted = false
@@ -193,6 +196,18 @@ final class AppViewModel: ObservableObject {
             dailyInsightText = d.text
         } catch {
             // Keep prior text on failure; first-load empty shows placeholder in UI.
+        }
+    }
+
+    func fetchAgentSpend() async {
+        do {
+            let token = try await ensureToken()
+            let s = try await ApiClient.shared.getAgentSpend(apiToken: token)
+            agentSpendDayUsd = s.dayUsd
+            agentSpendWeekUsd = s.weekUsd
+            agentSpendMonthUsd = s.monthUsd
+        } catch {
+            // Leave prior values; screen can show zeros.
         }
     }
 

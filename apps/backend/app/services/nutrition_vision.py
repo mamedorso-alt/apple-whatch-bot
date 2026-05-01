@@ -4,10 +4,12 @@ import base64
 import json
 import re
 from typing import Any
+from uuid import UUID
 
 import httpx
 
 from app.core.config import get_settings
+from app.services.agent_usage import record_agent_usage
 
 settings = get_settings()
 
@@ -65,7 +67,12 @@ def _parse_vision_response(content: str) -> dict[str, Any]:
 
 
 async def _analyze_food_image_anthropic(
-    image_bytes: bytes, mime: str, user_lang: str, diet_notes: str | None
+    image_bytes: bytes,
+    mime: str,
+    user_lang: str,
+    diet_notes: str | None,
+    *,
+    user_id: UUID | None,
 ) -> dict[str, Any]:
     if not settings.anthropic_api_key:
         raise RuntimeError("ANTHROPIC_NOT_CONFIGURED")
@@ -113,11 +120,27 @@ async def _analyze_food_image_anthropic(
             if t:
                 text_parts.append(t)
     content = "\n".join(text_parts)
-    return _parse_vision_response(content)
+    parsed = _parse_vision_response(content)
+    if user_id is not None:
+        usage = body.get("usage") or {}
+        record_agent_usage(
+            user_id,
+            provider="anthropic",
+            model=settings.anthropic_model,
+            operation="meal_vision",
+            input_tokens=int(usage.get("input_tokens") or 0),
+            output_tokens=int(usage.get("output_tokens") or 0),
+        )
+    return parsed
 
 
 async def _analyze_food_image_openai(
-    image_bytes: bytes, mime: str, user_lang: str, diet_notes: str | None
+    image_bytes: bytes,
+    mime: str,
+    user_lang: str,
+    diet_notes: str | None,
+    *,
+    user_id: UUID | None,
 ) -> dict[str, Any]:
     if not settings.openai_api_key:
         raise RuntimeError("OPENAI_NOT_CONFIGURED")
@@ -153,13 +176,33 @@ async def _analyze_food_image_openai(
         r.raise_for_status()
         body = r.json()
     content = body.get("choices", [{}])[0].get("message", {}).get("content", "") or ""
-    return _parse_vision_response(content)
+    parsed = _parse_vision_response(content)
+    if user_id is not None:
+        usage = body.get("usage") or {}
+        record_agent_usage(
+            user_id,
+            provider="openai",
+            model=settings.openai_vision_model,
+            operation="meal_vision",
+            input_tokens=int(usage.get("prompt_tokens") or 0),
+            output_tokens=int(usage.get("completion_tokens") or 0),
+        )
+    return parsed
 
 
-async def analyze_food_image(image_bytes: bytes, mime: str, user_lang: str, diet_notes: str | None) -> dict[str, Any]:
+async def analyze_food_image(
+    image_bytes: bytes,
+    mime: str,
+    user_lang: str,
+    diet_notes: str | None,
+    *,
+    user_id: UUID | None = None,
+) -> dict[str, Any]:
     """Prefer Anthropic when ANTHROPIC_API_KEY is set; otherwise OpenAI vision."""
     if settings.anthropic_api_key:
-        return await _analyze_food_image_anthropic(image_bytes, mime, user_lang, diet_notes)
+        return await _analyze_food_image_anthropic(
+            image_bytes, mime, user_lang, diet_notes, user_id=user_id
+        )
     if settings.openai_api_key:
-        return await _analyze_food_image_openai(image_bytes, mime, user_lang, diet_notes)
+        return await _analyze_food_image_openai(image_bytes, mime, user_lang, diet_notes, user_id=user_id)
     raise RuntimeError("AI_VISION_NOT_CONFIGURED")

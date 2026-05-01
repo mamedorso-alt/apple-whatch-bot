@@ -62,6 +62,14 @@
 "profile.card.quick_actions" = "Быстрые действия";
 "nav.health_profile" = "Профиль здоровья";
 "nav.insights" = "Инсайты";
+"nav.agent_spend" = "Расходы на AI ($)";
+
+"agent_spend.title" = "Расходы на AI-агента";
+"agent_spend.card.title" = "Оценка стоимости (USD)";
+"agent_spend.period.day" = "Сегодня";
+"agent_spend.period.week" = "Эта неделя";
+"agent_spend.period.month" = "Этот месяц";
+"agent_spend.disclaimer" = "Приблизительная стоимость API по вашему использованию (коуч, AI в Telegram, фото еды, голос). Это не счёт от провайдера.";
 
 "health_profile.title" = "Профиль здоровья";
 "health_profile.card.body" = "Цели и заметки";

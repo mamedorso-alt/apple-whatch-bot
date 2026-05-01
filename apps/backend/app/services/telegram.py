@@ -296,8 +296,12 @@ async def extract_incoming_text_or_reply(
         return None, None
 
     lang = language_for_telegram(db, telegram_user_id)
+    linked = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+    uid = linked.id if linked else None
     try:
-        transcript = await transcribe_telegram_media(file_id=file_id, fallback_filename="voice.ogg")
+        transcript = await transcribe_telegram_media(
+            file_id=file_id, fallback_filename="voice.ogg", user_id=uid
+        )
     except RuntimeError as exc:
         code = str(exc)
         if code == "VOICE_NOT_CONFIGURED":
@@ -413,7 +417,9 @@ async def handle_meal_photo(db: Session, user: User, chat_id: int, file_id: str)
         return
 
     try:
-        analyzed = await analyze_food_image(data, mime, user.language, profile.diet_notes)
+        analyzed = await analyze_food_image(
+            data, mime, user.language, profile.diet_notes, user_id=user.id
+        )
     except RuntimeError:
         await send_telegram_message(chat_id, msg(user.language, "meal_ai_missing"))
         return

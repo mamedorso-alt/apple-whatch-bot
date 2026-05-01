@@ -180,6 +180,20 @@ class SalesSnapshot(Base):
     updated_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
 
+class AgentUsageEvent(Base):
+    __tablename__ = "agent_usage_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    created_at: Mapped[dt_datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    provider: Mapped[str] = mapped_column(String(32), nullable=False)
+    model: Mapped[str] = mapped_column(String(128), nullable=False)
+    operation: Mapped[str] = mapped_column(String(32), nullable=False)
+    input_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    output_tokens: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    cost_usd: Mapped[Decimal] = mapped_column(Numeric(12, 6), nullable=False, default=0)
+
+
 class SalesAgentMemory(Base):
     __tablename__ = "sales_agent_memory"
     __table_args__ = (UniqueConstraint("user_id", "memory_type", "period_key", name="uq_sales_memory_period"),)
