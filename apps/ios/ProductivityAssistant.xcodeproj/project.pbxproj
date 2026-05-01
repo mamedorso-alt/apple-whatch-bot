@@ -185,7 +185,7 @@
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
 					68E72DA06EDE193936000B6B = {
-						DevelopmentTeam = Z243QWWKGL;
+						DevelopmentTeam = SV7U49UD5T;
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -331,7 +331,7 @@
 				CODE_SIGN_ENTITLEMENTS = ProductivityAssistant/ProductivityAssistant.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Z243QWWKGL;
+				DEVELOPMENT_TEAM = SV7U49UD5T;
 				INFOPLIST_FILE = ProductivityAssistant/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -349,7 +349,7 @@
 				CODE_SIGN_ENTITLEMENTS = ProductivityAssistant/ProductivityAssistant.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
-				DEVELOPMENT_TEAM = Z243QWWKGL;
+				DEVELOPMENT_TEAM = SV7U49UD5T;
 				INFOPLIST_FILE = ProductivityAssistant/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
