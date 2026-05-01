@@ -76,21 +76,44 @@ struct DashboardView: View {
                     }
                 }
 
-                HStack(spacing: 10) {
-                    Button(String(localized: "sync.button.sync_now")) {
-                        Task { await viewModel.syncNow() }
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .tint(AppTheme.accent)
-                    .disabled(viewModel.isLoading)
+                DashboardCard(title: String(localized: "sync.title")) {
+                    Text(statusSubtitle)
+                        .font(.footnote)
+                        .foregroundStyle(.white.opacity(0.75))
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
-                    Button(String(localized: "sync.button.refresh_status")) {
-                        Task { await viewModel.refreshReportStatus() }
+                    HStack(spacing: 10) {
+                        Button(String(localized: "sync.button.sync_now")) {
+                            Task { await viewModel.syncNow() }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(AppTheme.accent)
+                        .disabled(viewModel.isLoading)
+
+                        Button(String(localized: "sync.button.refresh_status")) {
+                            Task { await viewModel.refreshReportStatus() }
+                        }
+                        .buttonStyle(.bordered)
+                        .disabled(viewModel.isLoading)
                     }
-                    .buttonStyle(.bordered)
-                    .disabled(viewModel.isLoading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                    NavigationLink {
+                        SyncStatusView(viewModel: viewModel)
+                    } label: {
+                        HStack {
+                            Text(String(localized: "nav.sync_status"))
+                                .font(.subheadline.weight(.medium))
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(.white.opacity(0.45))
+                        }
+                        .foregroundStyle(AppTheme.accent)
+                        .padding(.top, 4)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
 
                 if let error = viewModel.errorMessage {
                     Text(error)

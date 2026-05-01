@@ -30,36 +30,43 @@ struct ProfileHubView: View {
                     } label: {
                         profileActionRow(title: String(localized: "nav.sync_status"), icon: "arrow.trianglehead.2.clockwise")
                     }
+                    .buttonStyle(.plain)
                     NavigationLink {
                         TelegramLinkView(viewModel: viewModel)
                     } label: {
                         profileActionRow(title: String(localized: "nav.telegram_link"), icon: "paperplane.fill")
                     }
+                    .buttonStyle(.plain)
                     NavigationLink {
                         HealthAccessView(viewModel: viewModel)
                     } label: {
                         profileActionRow(title: String(localized: "nav.health_access"), icon: "heart.text.square.fill")
                     }
+                    .buttonStyle(.plain)
                     NavigationLink {
                         HealthProfileView(viewModel: viewModel)
                     } label: {
                         profileActionRow(title: String(localized: "nav.health_profile"), icon: "person.text.rectangle.fill")
                     }
+                    .buttonStyle(.plain)
                     NavigationLink {
                         InsightsView(viewModel: viewModel)
                     } label: {
                         profileActionRow(title: String(localized: "nav.insights"), icon: "lightbulb.max.fill")
                     }
+                    .buttonStyle(.plain)
                     NavigationLink {
                         AgentSpendView(viewModel: viewModel)
                     } label: {
                         profileActionRow(title: String(localized: "nav.agent_spend"), icon: "dollarsign.circle.fill")
                     }
+                    .buttonStyle(.plain)
                     NavigationLink {
                         OnboardingView()
                     } label: {
                         profileActionRow(title: String(localized: "nav.onboarding"), icon: "info.circle.fill")
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding()
