@@ -5,13 +5,16 @@
 #
 # Requires: same Mac keychain cert, a prior Debug-iphoneos .app with
 # embedded.mobileprovision (same bundle id), iPhone unlocked & trusted.
+#
+# WARNING: Re-signing can produce a bundle iOS rejects at launch (instant quit).
+# If that happens: delete the app and install with Xcode → Run (⌘R) only.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SRC_IOS="$ROOT/apps/ios"
 WORK="${IOS_WORK_DIR:-/tmp/PANoSpaces}"
 DERIVED="${IOS_DERIVED:-/tmp/pa-unsigned}"
-INSTALL_APP="${IOS_INSTALL_APP:-/tmp/ProductivityAssistant-install.app}"
+INSTALL_APP="${IOS_INSTALL_APP:-/tmp/ProductivityAssistant-device.app}"
 DEVICE_ID="${IOS_DEVICE_ID:-}"
 
 if [[ -z "$DEVICE_ID" ]]; then
@@ -42,15 +45,34 @@ rm -rf "$DERIVED"
   -derivedDataPath "$DERIVED" build)
 
 BUILT="$DERIVED/Build/Products/Debug-iphoneos/ProductivityAssistant.app"
-ENT="$(mktemp /tmp/pa-entitlements.XXXXXX.plist)"
-codesign -d --entitlements "$ENT" "$OLD_APP" >/dev/null 2>&1
+ENT="$(mktemp -t pa-entitlements)"
+rm -f "$ENT"
+if ! codesign -d --entitlements "$ENT" "$OLD_APP" 2>/dev/null; then
+  echo "Failed to read entitlements from $OLD_APP" >&2
+  exit 1
+fi
+if [[ ! -s "$ENT" ]]; then
+  echo "Entitlements export is empty" >&2
+  exit 1
+fi
 
 rm -rf "$INSTALL_APP"
 ditto "$BUILT" "$INSTALL_APP"
 cp "$OLD_APP/embedded.mobileprovision" "$INSTALL_APP/"
 codesign --remove-signature "$INSTALL_APP" 2>/dev/null || true
-codesign --entitlements "$ENT" --sign "Apple Development" --force --generate-entitlement-der "$INSTALL_APP"
+# Match Xcode dev signing: do not add --generate-entitlement-der here (can mismatch the profile).
+SIGN_ID="$(security find-identity -v -p codesigning 2>/dev/null | sed -n 's/.*"\(Apple Development:.*\)"/\1/p' | head -1)"
+if [[ -z "$SIGN_ID" ]]; then
+  echo "No Apple Development signing identity in keychain." >&2
+  exit 1
+fi
+codesign --entitlements "$ENT" --sign "$SIGN_ID" --force --timestamp=none "$INSTALL_APP"
 rm -f "$ENT"
+
+if ! codesign --verify --deep --strict --verbose=2 "$INSTALL_APP" 2>&1; then
+  echo "codesign verify failed; refusing to install." >&2
+  exit 1
+fi
 
 xcrun devicectl device install app --device "$DEVICE_ID" "$INSTALL_APP"
 echo "Installed. Check Profile tab footer for CFBundle version."
