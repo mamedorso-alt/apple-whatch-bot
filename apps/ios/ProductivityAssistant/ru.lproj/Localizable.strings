@@ -48,7 +48,7 @@
 "dashboard.card.insight_preview" = "Подсказка дня";
 "dashboard.insight.placeholder" = "После синхронизации здесь появится краткий инсайт. Полный текст — в разделе «Инсайты».";
 "dashboard.insight.open_full" = "Все инсайты";
-"dashboard.kpi.connection" = "Подключение";
+"dashboard.kpi.connection" = "Telegram-бот";
 "dashboard.kpi.score" = "Оценка за сегодня";
 "dashboard.kpi.avg_steps" = "Средние шаги";
 "dashboard.kpi.avg_kcal" = "Средние активные ккал";
@@ -109,7 +109,7 @@
 "health_access.prompt" = "Разрешите доступ к данным HealthKit:";
 "health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- heartRate\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
 "health_access.button.allow" = "Разрешить доступ";
-"health_access.button.granted" = "Доступ получен";
+"health_access.button.granted" = "Доступ настроен (Health)";
 
 "telegram_link.title" = "Привязка Telegram";
 "telegram_link.step1" = "1) Нажмите кнопку для получения кода";

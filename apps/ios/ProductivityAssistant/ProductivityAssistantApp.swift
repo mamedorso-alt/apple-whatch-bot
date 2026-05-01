@@ -14,6 +14,7 @@ struct ProductivityAssistantApp: App {
         WindowGroup {
             RootContentView(viewModel: viewModel)
                 .task {
+                    await viewModel.refreshHealthAccessState()
                     await viewModel.autoSyncIfStale(maxAgeMinutes: 20)
                     await viewModel.startAutomaticHealthSync()
                 }
@@ -21,6 +22,7 @@ struct ProductivityAssistantApp: App {
                     switch newPhase {
                     case .active:
                         Task {
+                            await viewModel.refreshHealthAccessState()
                             await viewModel.autoSyncIfStale(maxAgeMinutes: 20)
                             await viewModel.startAutomaticHealthSync()
                         }

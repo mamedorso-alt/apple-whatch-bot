@@ -48,7 +48,7 @@
 "dashboard.card.insight_preview" = "Today’s tip";
 "dashboard.insight.placeholder" = "After sync, a short personalized insight will appear here. You can also open the full Insights screen.";
 "dashboard.insight.open_full" = "Open full insights";
-"dashboard.kpi.connection" = "Connection";
+"dashboard.kpi.connection" = "Telegram bot";
 "dashboard.kpi.score" = "Today Score";
 "dashboard.kpi.avg_steps" = "Avg Steps";
 "dashboard.kpi.avg_kcal" = "Avg Active kcal";
@@ -109,7 +109,7 @@
 "health_access.prompt" = "Allow access to HealthKit data:";
 "health_access.list" = "- sleepAnalysis\n- stepCount\n- activeEnergyBurned\n- heartRate\n- restingHeartRate\n- heartRateVariabilitySDNN\n- workoutType";
 "health_access.button.allow" = "Allow Access";
-"health_access.button.granted" = "Access Granted";
+"health_access.button.granted" = "Health access on";
 
 "telegram_link.title" = "Telegram Link";
 "telegram_link.step1" = "1) Tap button to get a code";

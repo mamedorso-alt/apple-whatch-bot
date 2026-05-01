@@ -36,6 +36,30 @@ final class HealthKitService {
         try await store.requestAuthorization(toShare: [], read: readTypes)
     }
 
+    /// `true` when the Health permission sheet has already been shown for these read types (`unnecessary`),
+    /// i.e. the user configured access in the app or in Settings — **not** a guarantee every toggle is on.
+    func hasCompletedAuthorizationPrompt() async throws -> Bool {
+        guard HKHealthStore.isHealthDataAvailable() else { return false }
+        try await withCheckedThrowingContinuation { continuation in
+            store.getRequestStatusForAuthorization(toShare: [], read: readTypes) { status, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                switch status {
+                case .shouldRequest:
+                    continuation.resume(returning: false)
+                case .unnecessary:
+                    continuation.resume(returning: true)
+                case .unknown:
+                    continuation.resume(returning: false)
+                @unknown default:
+                    continuation.resume(returning: false)
+                }
+            }
+        }
+    }
+
     func startBackgroundDelivery(onChange: @escaping @Sendable () -> Void) async throws {
         guard HKHealthStore.isHealthDataAvailable() else {
             return

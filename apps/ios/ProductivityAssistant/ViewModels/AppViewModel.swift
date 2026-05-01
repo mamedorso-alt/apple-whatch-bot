@@ -2,6 +2,7 @@ import Foundation
 
 @MainActor
 final class AppViewModel: ObservableObject {
+    private static let healthAccessUserConfirmedKey = "health_access_user_confirmed"
     @Published var apiToken: String = UserDefaults.standard.string(forKey: "api_token") ?? ""
     @Published var lastSyncAt: Date? = UserDefaults.standard.object(forKey: "last_sync_at") as? Date
     @Published var linkCode: String = ""
@@ -31,10 +32,28 @@ final class AppViewModel: ObservableObject {
         errorMessage = nil
     }
 
+    /// Syncs `healthAccessGranted` with HealthKit + UserDefaults so Settings-only grants match the UI.
+    func refreshHealthAccessState() async {
+        do {
+            if UserDefaults.standard.bool(forKey: Self.healthAccessUserConfirmedKey) {
+                healthAccessGranted = true
+                return
+            }
+            if try await syncManager.healthKitHasCompletedAuthorizationPrompt() {
+                healthAccessGranted = true
+            } else {
+                healthAccessGranted = false
+            }
+        } catch {
+            // Leave prior value; Health screen can still offer the Allow button.
+        }
+    }
+
     func requestHealthAccess() async {
         await run {
             try await syncManager.requestHealthAccess()
             healthAccessGranted = true
+            UserDefaults.standard.set(true, forKey: Self.healthAccessUserConfirmedKey)
         }
     }
 

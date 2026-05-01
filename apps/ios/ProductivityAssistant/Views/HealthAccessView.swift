@@ -31,6 +31,7 @@ struct HealthAccessView: View {
         .navigationTitle(String(localized: "health_access.title"))
         .onAppear {
             viewModel.clearError()
+            Task { await viewModel.refreshHealthAccessState() }
         }
     }
 }

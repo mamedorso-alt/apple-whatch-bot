@@ -1,4 +1,5 @@
 import Foundation
+import OSLog
 
 final class ApiClient {
     static let shared = ApiClient()
@@ -22,6 +23,18 @@ final class ApiClient {
         JSONDecoder()
     }()
 
+    private let log = Logger(subsystem: "com.productivity.assistant", category: "api")
+
+    private func decode<T: Decodable>(_ type: T.Type, from data: Data) throws -> T {
+        do {
+            return try apiDecoder.decode(T.self, from: data)
+        } catch {
+            let snippet = String(data: data.prefix(600), encoding: .utf8) ?? ""
+            log.error("JSON decode \(String(describing: type), privacy: .public) failed: \(String(describing: error), privacy: .public) body=\(snippet, privacy: .public)")
+            throw error
+        }
+    }
+
     func authenticateDevice() async throws -> DeviceAuthResponse {
         let url = baseURL.appending(path: "/v1/auth/device")
         var request = URLRequest(url: url)
@@ -29,7 +42,7 @@ final class ApiClient {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(DeviceAuthResponse.self, from: data)
+        return try decode(DeviceAuthResponse.self, from: data)
     }
 
     func createLinkCode(apiToken: String) async throws -> LinkCodeResponse {
@@ -39,7 +52,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(LinkCodeResponse.self, from: data)
+        return try decode(LinkCodeResponse.self, from: data)
     }
 
     func sendDailyMetrics(payload: DailyPayload, apiToken: String) async throws {
@@ -60,7 +73,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(TextReportResponse.self, from: data)
+        return try decode(TextReportResponse.self, from: data)
     }
 
     func getWeekReport(apiToken: String) async throws -> TextReportResponse {
@@ -70,7 +83,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(TextReportResponse.self, from: data)
+        return try decode(TextReportResponse.self, from: data)
     }
 
     func getReportStatus(apiToken: String) async throws -> ReportStatusResponse {
@@ -80,7 +93,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(ReportStatusResponse.self, from: data)
+        return try decode(ReportStatusResponse.self, from: data)
     }
 
     func getUserProfile(apiToken: String) async throws -> UserProfileDTO {
@@ -90,7 +103,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(UserProfileDTO.self, from: data)
+        return try decode(UserProfileDTO.self, from: data)
     }
 
     func patchUserProfile(apiToken: String, patch: UserProfilePatch) async throws -> UserProfileDTO {
@@ -102,7 +115,7 @@ final class ApiClient {
         request.httpBody = try encoder.encode(patch)
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(UserProfileDTO.self, from: data)
+        return try decode(UserProfileDTO.self, from: data)
     }
 
     func postProfileWeight(apiToken: String, weightKg: Double) async throws -> UserProfileDTO {
@@ -114,7 +127,7 @@ final class ApiClient {
         request.httpBody = try encoder.encode(WeightIngestPayload(weightKg: weightKg))
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(UserProfileDTO.self, from: data)
+        return try decode(UserProfileDTO.self, from: data)
     }
 
     func postProfileSubjective(apiToken: String, payload: SubjectiveDailyPayload) async throws -> SubjectiveSaveResponse {
@@ -127,7 +140,7 @@ final class ApiClient {
         request.httpBody = try plainEncoder.encode(payload)
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(SubjectiveSaveResponse.self, from: data)
+        return try decode(SubjectiveSaveResponse.self, from: data)
     }
 
     func getDailyInsights(apiToken: String) async throws -> InsightTextResponse {
@@ -137,7 +150,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(InsightTextResponse.self, from: data)
+        return try decode(InsightTextResponse.self, from: data)
     }
 
     func getWeeklyInsights(apiToken: String) async throws -> InsightTextResponse {
@@ -147,7 +160,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(InsightTextResponse.self, from: data)
+        return try decode(InsightTextResponse.self, from: data)
     }
 
     func getAgentSpend(apiToken: String) async throws -> AgentSpendResponse {
@@ -157,7 +170,7 @@ final class ApiClient {
         request.setValue("Bearer \(apiToken)", forHTTPHeaderField: "Authorization")
         let (data, response) = try await URLSession.shared.data(for: request)
         try validate(response: response, data: data)
-        return try apiDecoder.decode(AgentSpendResponse.self, from: data)
+        return try decode(AgentSpendResponse.self, from: data)
     }
 
     private func validate(response: URLResponse, data: Data) throws {
