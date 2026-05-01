@@ -27,6 +27,10 @@ final class AppViewModel: ObservableObject {
     let syncManager = SyncManager()
     private var autoSyncStarted = false
 
+    func clearError() {
+        errorMessage = nil
+    }
+
     func requestHealthAccess() async {
         await run {
             try await syncManager.requestHealthAccess()

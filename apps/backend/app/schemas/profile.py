@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import date, datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_serializer
 
 
 class MedicalFlags(BaseModel):
@@ -30,6 +30,13 @@ class UserProfileRead(BaseModel):
     food_logging_enabled: bool = True
 
     model_config = {"from_attributes": True}
+
+    @field_serializer("goal_target_weight_kg", "last_weight_kg", when_used="json")
+    def _weights_as_json_numbers(self, v: Decimal | None) -> float | None:
+        """iOS expects JSON numbers; Pydantic otherwise encodes Decimal as strings."""
+        if v is None:
+            return None
+        return float(v)
 
 
 class UserProfileUpdate(BaseModel):

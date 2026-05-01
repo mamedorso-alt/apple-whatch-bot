@@ -96,6 +96,50 @@ struct UserProfileDTO: Codable {
     let lastWeightAt: String?
     let maxAlertsPerDay: Int
     let foodLoggingEnabled: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case heightCm = "height_cm"
+        case sex
+        case birthYear = "birth_year"
+        case goalType = "goal_type"
+        case goalTargetWeightKg = "goal_target_weight_kg"
+        case goalHorizonDate = "goal_horizon_date"
+        case dietNotes = "diet_notes"
+        case medicalFlags = "medical_flags"
+        case quietHoursStart = "quiet_hours_start"
+        case quietHoursEnd = "quiet_hours_end"
+        case weeklyWeighInWeekday = "weekly_weigh_in_weekday"
+        case lastWeightKg = "last_weight_kg"
+        case lastWeightAt = "last_weight_at"
+        case maxAlertsPerDay = "max_alerts_per_day"
+        case foodLoggingEnabled = "food_logging_enabled"
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        heightCm = try c.decodeIfPresent(Int.self, forKey: .heightCm)
+        sex = try c.decodeIfPresent(String.self, forKey: .sex)
+        birthYear = try c.decodeIfPresent(Int.self, forKey: .birthYear)
+        goalType = try c.decodeIfPresent(String.self, forKey: .goalType)
+        goalTargetWeightKg = Self.decodeFlexibleDouble(c, .goalTargetWeightKg)
+        goalHorizonDate = try c.decodeIfPresent(String.self, forKey: .goalHorizonDate)
+        dietNotes = try c.decodeIfPresent(String.self, forKey: .dietNotes)
+        medicalFlags = try c.decodeIfPresent(MedicalFlagsDTO.self, forKey: .medicalFlags) ?? .empty
+        quietHoursStart = try c.decodeIfPresent(String.self, forKey: .quietHoursStart)
+        quietHoursEnd = try c.decodeIfPresent(String.self, forKey: .quietHoursEnd)
+        weeklyWeighInWeekday = try c.decodeIfPresent(Int.self, forKey: .weeklyWeighInWeekday)
+        lastWeightKg = Self.decodeFlexibleDouble(c, .lastWeightKg)
+        lastWeightAt = try c.decodeIfPresent(String.self, forKey: .lastWeightAt)
+        maxAlertsPerDay = try c.decodeIfPresent(Int.self, forKey: .maxAlertsPerDay) ?? 3
+        foodLoggingEnabled = try c.decodeIfPresent(Bool.self, forKey: .foodLoggingEnabled) ?? true
+    }
+
+    /// Pydantic may send `Decimal` weights as JSON strings; accept both.
+    private static func decodeFlexibleDouble(_ c: KeyedDecodingContainer<CodingKeys>, _ key: CodingKeys) -> Double? {
+        if let d = try? c.decodeIfPresent(Double.self, forKey: key) { return d }
+        if let s = try? c.decodeIfPresent(String.self, forKey: key) { return Double(s) }
+        return nil
+    }
 }
 
 struct InsightTextResponse: Codable {

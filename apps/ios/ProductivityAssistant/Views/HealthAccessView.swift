@@ -29,5 +29,8 @@ struct HealthAccessView: View {
         }
         .background(AppTheme.background.ignoresSafeArea())
         .navigationTitle(String(localized: "health_access.title"))
+        .onAppear {
+            viewModel.clearError()
+        }
     }
 }
