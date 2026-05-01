@@ -16,6 +16,24 @@ def test_link_flow_success():
     assert db.link_codes[0].used_at is not None
 
 
+def test_link_moves_telegram_from_stale_user():
+    """Reinstall app → new User; same Telegram must link via fresh code without 'another account' error."""
+    db = FakeSession()
+    old_user = make_user(language="ru", telegram_user_id=888)
+    new_user = make_user(language="ru", telegram_user_id=None)
+    new_user.is_linked = False
+    db.users.extend([old_user, new_user])
+    db.link_codes.append(make_link_code(new_user.id, "NEWCODE"))
+
+    reply = link_telegram(db, telegram_user_id=888, raw_code="NEWCODE")
+
+    assert "успешно" in reply.lower()
+    assert old_user.telegram_user_id is None
+    assert old_user.is_linked is False
+    assert new_user.telegram_user_id == 888
+    assert new_user.is_linked is True
+
+
 def test_lang_command_switch():
     db = FakeSession()
     user = make_user(language="ru", telegram_user_id=777)

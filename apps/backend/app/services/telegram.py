@@ -102,12 +102,12 @@ def link_telegram(db: Session, telegram_user_id: int, raw_code: str) -> str:
     if user is None:
         return msg("ru", "link_invalid")
 
-    already_bound = next(
-        (u for u in db.query(User).all() if u.telegram_user_id == telegram_user_id and u.id != user.id),
-        None,
-    )
-    if already_bound:
-        return msg(user.language, "already_linked_other")
+    # Same Telegram was tied to an older app user (reinstall / new device). A fresh code from the app
+    # proves intent — move the binding to the user that owns this code.
+    for stale in db.query(User).all():
+        if stale.telegram_user_id == telegram_user_id and stale.id != user.id:
+            stale.telegram_user_id = None
+            stale.is_linked = False
 
     if user.telegram_user_id and user.telegram_user_id != telegram_user_id:
         return msg(user.language, "already_linked_other")
