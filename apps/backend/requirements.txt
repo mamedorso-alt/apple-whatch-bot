@@ -4,8 +4,10 @@ sqlalchemy==2.0.38
 alembic==1.14.1
 psycopg[binary]==3.2.5
 pydantic-settings==2.7.1
+eval-type-backport==0.3.1
 python-dotenv==1.0.1
 python-multipart==0.0.20
 httpx==0.28.1
 pytest==8.3.5
 apscheduler==3.10.4
+duckduckgo-search==7.3.0

@@ -14,7 +14,7 @@
   - `GET /v1/reports/coach` (AI coach, fallback если LLM недоступен)
   - `GET /v1/reports/status`
   - `GET /v1/usage/spend` — оценка расходов на LLM (USD) за день / неделю / месяц в часовом поясе пользователя
-- `POST /v1/telegram/webhook` (`/start`, `/help`, `/link CODE`, `/lang`, `/today`, `/week`, `/coach`, `/ask`) + free-text AI chat + voice-to-text (if configured)
+- `POST /v1/telegram/webhook` (`/start`, `/help`, `/link CODE`, `/lang`, `/today`, `/week`, `/coach`, `/ask`, опционально `/reel`) + free-text AI chat + voice-to-text (if configured)
   - `POST /internal/run-scheduled` (manual scheduler trigger)
 - APScheduler worker (interval-based auto trigger)
 - Scoring v1:
@@ -65,6 +65,7 @@
   - `SCHEDULER_ENABLED=true|false`
   - `SCHEDULER_INTERVAL_MIN=30`
 - Когда включен, backend автоматически вызывает scheduled отправки по интервалу.
+- **Reels-агент** (отдельно): `REELS_AGENT_ENABLED=true`, список получателей `REELS_AGENT_TELEGRAM_USER_IDS` (через запятую, это ваш numeric Telegram user id), время `REELS_AGENT_DAILY_HOUR` / `REELS_AGENT_DAILY_MINUTE`, при необходимости `REELS_AGENT_TIMEZONE`. Нужен `ANTHROPIC_API_KEY`. Раз в сутки на пользователя из списка (в окне времени, как у отчётов) уходит сценарий; дубль автоматической отправки в тот же календарный день не шлётся. Вручную: команда `/reel` или кнопка «🎬 Сценарий рилса» в `/start`/`/help` для allowlist. Подробнее: `docs/REELS_AGENT_TZ.md`.
 
 ## Команды (Makefile)
 - `make up` - поднять backend + db

@@ -43,7 +43,7 @@ def test_sum_spend_respects_user_timezone_window():
             input_tokens=0,
             output_tokens=0,
             cost_usd=Decimal("1.00"),
-            created_at=now - timedelta(hours=1),
+            created_at=now - timedelta(minutes=30),
         )
     )
     db.add(
@@ -55,7 +55,7 @@ def test_sum_spend_respects_user_timezone_window():
             input_tokens=0,
             output_tokens=0,
             cost_usd=Decimal("2.00"),
-            created_at=now - timedelta(days=3),
+            created_at=now - timedelta(minutes=10),
         )
     )
     db.commit()

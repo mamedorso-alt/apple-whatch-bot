@@ -31,6 +31,14 @@ class Settings(BaseSettings):
     insights_baseline_days: int = 28
     insights_regularity_days: int = 14
 
+    reels_agent_enabled: bool = False
+    reels_agent_telegram_user_ids: str = ""
+    reels_agent_daily_hour: int = 10
+    reels_agent_daily_minute: int = 0
+    reels_agent_timezone: str = ""
+    reels_agent_anthropic_timeout_sec: int = 120
+    reels_agent_anthropic_max_tokens: int = 2500
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", case_sensitive=False)
 
 

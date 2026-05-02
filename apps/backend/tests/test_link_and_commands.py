@@ -22,7 +22,8 @@ def test_link_moves_telegram_from_stale_user():
     old_user = make_user(language="ru", telegram_user_id=888)
     new_user = make_user(language="ru", telegram_user_id=None)
     new_user.is_linked = False
-    db.users.extend([old_user, new_user])
+    # FakeSession.query(...).first() returns the first row; link code belongs to new_user.
+    db.users.extend([new_user, old_user])
     db.link_codes.append(make_link_code(new_user.id, "NEWCODE"))
 
     reply = link_telegram(db, telegram_user_id=888, raw_code="NEWCODE")

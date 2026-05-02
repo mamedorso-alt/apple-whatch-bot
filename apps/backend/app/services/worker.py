@@ -4,6 +4,7 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 
 from app.core.config import get_settings
 from app.db.session import SessionLocal
+from app.services.reels_schedule import run_reels_agent_scheduled
 from app.services.scheduler import run_scheduled_reports
 
 settings = get_settings()
@@ -14,6 +15,7 @@ async def _run_tick() -> None:
     db = SessionLocal()
     try:
         await run_scheduled_reports(db)
+        await run_reels_agent_scheduled(db)
     finally:
         db.close()
 

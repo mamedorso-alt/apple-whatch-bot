@@ -5,7 +5,7 @@ MESSAGES = {
             "Привяжите аккаунт: /link CODE из приложения.\n"
             "Здоровье: /today /week /insights /trends /profile /weight /mood /meal /coach\n"
             "Продажи: /weekly /month /plan /risks /actions /ask\n"
-            "Голос и свободный текст поддерживаются. /lang ru|en /help"
+            "Голос и свободный текст поддерживаются. Кнопка «Сценарий рилса» — если включено. /lang ru|en /help"
         ),
         "help": (
             "Команды здоровье и фокус:\n"
@@ -17,6 +17,7 @@ MESSAGES = {
             "/mood 3 2 — стресс и усталость 0–5 за сегодня\n"
             "/meal — как отправить фото еды\n"
             "/coach — AI-коуч (или /coach ваш вопрос)\n"
+            "/reel — сценарий Reels (если включено на сервере)\n"
             "\nПродажи:\n"
             "/weekly /month /plan /risks /actions /ask ВОПРОС\n"
             "\nОбщее: /link CODE, /lang ru|en, /help"
@@ -45,6 +46,10 @@ MESSAGES = {
         "meal_download_failed": "Не удалось скачать фото из Telegram.",
         "meal_ai_missing": "Анализ фото не настроен: задайте ANTHROPIC_API_KEY или OPENAI_API_KEY на сервере.",
         "meal_analyze_failed": "Не удалось разобрать фото. Попробуйте другое фото или свет.",
+        "reels_disabled": "Сценарии Reels на сервере выключены.",
+        "reels_not_allowed": "Команда /reel доступна только для разрешённых аккаунтов.",
+        "reels_search_empty": "Не удалось найти достаточно материалов в интернете для сценария. Попробуйте позже.",
+        "reels_ai_failed": "Поиск сработал, но не удалось сгенерировать текст. Проверьте ANTHROPIC_API_KEY и попробуйте снова.",
     },
     "en": {
         "start": (
@@ -52,7 +57,7 @@ MESSAGES = {
             "Link: /link CODE from the app.\n"
             "Health: /today /week /insights /trends /profile /weight /mood /meal /coach\n"
             "Sales: /weekly /month /plan /risks /actions /ask\n"
-            "Voice and free text work. /lang ru|en /help"
+            "Voice and free text work. «Reel script» button when enabled. /lang ru|en /help"
         ),
         "help": (
             "Health & focus:\n"
@@ -64,6 +69,7 @@ MESSAGES = {
             "/mood 3 2 — stress & fatigue 0–5 for today\n"
             "/meal — food photo how-to\n"
             "/coach — AI coach (or /coach your question)\n"
+            "/reel — Reels script (if enabled on server)\n"
             "\nSales:\n"
             "/weekly /month /plan /risks /actions /ask QUESTION\n"
             "\nGeneral: /link CODE, /lang ru|en, /help"
@@ -92,6 +98,10 @@ MESSAGES = {
         "meal_download_failed": "Could not download the photo from Telegram.",
         "meal_ai_missing": "Food photo analysis is not configured (set ANTHROPIC_API_KEY or OPENAI_API_KEY).",
         "meal_analyze_failed": "Could not analyze the photo. Try another angle or lighting.",
+        "reels_disabled": "Reels scripts are disabled on the server.",
+        "reels_not_allowed": "/reel is only available for allowlisted accounts.",
+        "reels_search_empty": "Could not gather enough web sources for a script right now. Try again later.",
+        "reels_ai_failed": "Search worked but text generation failed. Check ANTHROPIC_API_KEY and retry.",
     },
 }
 

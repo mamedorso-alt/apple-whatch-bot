@@ -22,6 +22,40 @@ from app.services.voice import transcribe_telegram_media
 
 settings = get_settings()
 
+_CHUNK_LIMIT = 3800
+
+
+def chunk_telegram_text(text: str, limit: int = _CHUNK_LIMIT) -> list[str]:
+    raw = (text or "").strip()
+    if not raw:
+        return []
+    if len(raw) <= limit:
+        return [raw]
+    parts: list[str] = []
+    rest = raw
+    while rest:
+        if len(rest) <= limit:
+            parts.append(rest)
+            break
+        cut = rest.rfind("\n", 0, limit)
+        if cut < limit // 2:
+            cut = limit
+        parts.append(rest[:cut].strip())
+        rest = rest[cut:].strip()
+    return [p for p in parts if p]
+
+
+async def send_telegram_messages_chunked(
+    chat_id: int,
+    text: str,
+    reply_markup: dict | None = None,
+) -> None:
+    chunks = chunk_telegram_text(text)
+    if not chunks:
+        chunks = ["…"]
+    for i, chunk in enumerate(chunks):
+        await send_telegram_message(chat_id, chunk, reply_markup if i == 0 else None)
+
 
 async def send_telegram_message(chat_id: int, text: str, reply_markup: dict | None = None) -> None:
     if not settings.telegram_bot_token:
@@ -88,6 +122,12 @@ def set_language(db: Session, telegram_user_id: int, lang: str) -> str:
     return msg(user.language, "lang_updated_en" if user.language == "en" else "lang_updated_ru")
 
 
+def _to_utc_aware(dt: datetime) -> datetime:
+    if dt.tzinfo is None:
+        return dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
 def link_telegram(db: Session, telegram_user_id: int, raw_code: str) -> str:
     code = raw_code.strip().upper()
     link_code = db.query(LinkCode).filter(LinkCode.code == code, LinkCode.used_at.is_(None)).first()
@@ -95,7 +135,7 @@ def link_telegram(db: Session, telegram_user_id: int, raw_code: str) -> str:
         return msg("ru", "link_invalid")
 
     now = datetime.now(timezone.utc)
-    if link_code.expires_at < now:
+    if _to_utc_aware(link_code.expires_at) < now:
         return msg("ru", "link_expired")
 
     user = db.query(User).filter(User.id == link_code.user_id).first()

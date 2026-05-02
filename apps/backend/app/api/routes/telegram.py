@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
@@ -10,6 +12,8 @@ from app.db.session import get_db
 from app.i18n.telegram import msg
 from app.schemas.link import LinkCodeResponse
 from app.services.linking import generate_link_code
+from app.services.reels_schedule import run_reels_manual_delivery
+from app.services.reels_support import REELS_TRIGGER_TEXTS, is_reels_allowlisted, reels_reply_keyboard_markup
 from app.services.telegram import (
     build_command_reply_async,
     extract_incoming_text_or_reply,
@@ -20,7 +24,6 @@ from app.services.telegram import (
 )
 
 router = APIRouter(prefix="/v1/telegram", tags=["telegram"])
-settings = get_settings()
 logger = logging.getLogger(__name__)
 
 
@@ -39,8 +42,9 @@ async def telegram_webhook(
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> dict[str, str]:
-    if settings.telegram_webhook_secret:
-        if x_telegram_bot_api_secret_token != settings.telegram_webhook_secret:
+    cfg = get_settings()
+    if cfg.telegram_webhook_secret:
+        if x_telegram_bot_api_secret_token != cfg.telegram_webhook_secret:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret")
 
     cq = payload.get("callback_query")
@@ -95,8 +99,33 @@ async def telegram_webhook(
         if not text:
             return {"status": "ignored"}
 
+        user_lang = language_for_telegram(db, telegram_user_id)
+        ts = text.strip()
+        ts_low = ts.lower()
+        is_reel_cmd = ts == "/reel" or ts in REELS_TRIGGER_TEXTS
+        if is_reel_cmd:
+            if not cfg.reels_agent_enabled:
+                await send_telegram_message(chat_id=chat_id, text=msg(user_lang, "reels_disabled"))
+                return {"status": "ok"}
+            if not is_reels_allowlisted(telegram_user_id):
+                await send_telegram_message(chat_id=chat_id, text=msg(user_lang, "reels_not_allowed"))
+                return {"status": "ok"}
+            try:
+                await run_reels_manual_delivery(db, telegram_user_id, chat_id)
+            except Exception:
+                logger.exception("reels manual delivery failed")
+                await send_telegram_message(
+                    chat_id=chat_id,
+                    text=msg(user_lang, "generic_processing_error"),
+                )
+            return {"status": "ok"}
+
         reply = await build_command_reply_async(db, telegram_user_id, text)
-        await send_telegram_message(chat_id=chat_id, text=reply)
+        markup = None
+        if cfg.reels_agent_enabled and is_reels_allowlisted(telegram_user_id):
+            if ts_low == "/start" or ts_low.startswith("/start ") or ts_low == "/help" or ts_low.startswith("/help "):
+                markup = reels_reply_keyboard_markup(user_lang)
+        await send_telegram_message(chat_id=chat_id, text=reply, reply_markup=markup)
         return {"status": "ok"}
     except Exception:
         logger.exception("Telegram webhook processing failed")
