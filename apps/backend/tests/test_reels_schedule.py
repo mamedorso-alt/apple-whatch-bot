@@ -112,8 +112,12 @@ def test_manual_topic_atomic_claim_skips_second_call(monkeypatch):
     async def fake_compose(_db, _tid, user_topic=None) -> str:
         return "SCRIPT"
 
+    async def fake_send(*_a, **_kw) -> None:
+        return None
+
     monkeypatch.setattr(reels_schedule_mod, "compose_reels_script_for_telegram_user", fake_compose)
     monkeypatch.setattr(reels_schedule_mod, "send_telegram_messages_chunked", fake_chunked)
+    monkeypatch.setattr(reels_schedule_mod, "send_telegram_message", fake_send)
 
     async def run_both() -> None:
         await reels_schedule_mod.run_reels_manual_with_user_topic(db, 888, 888, "first topic " * 3)

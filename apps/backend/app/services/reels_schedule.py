@@ -128,6 +128,10 @@ async def run_reels_manual_with_user_topic(
 
     user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
     lang = user.language if user else "ru"
+    try:
+        await send_telegram_message(chat_id, msg(lang, "reels_topic_processing"))
+    except Exception:
+        logger.exception("reels topic: failed to send processing notice")
     tz_name = (user.timezone if user else None) or settings.default_timezone
     try:
         delivery_date = datetime.now(ZoneInfo(tz_name)).date()

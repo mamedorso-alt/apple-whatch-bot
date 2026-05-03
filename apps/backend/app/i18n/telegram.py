@@ -58,6 +58,9 @@ MESSAGES = {
         ),
         "reels_topic_cancelled": "Ок, режим сценария отменён. Напиши /reel или нажми кнопку, когда снова понадобится.",
         "reels_topic_too_short": "Напиши чуть подробнее (хотя бы пара предложений с темой и идеей), чтобы я мог искать релевантные источники.",
+        "reels_topic_processing": (
+            "Принял. Ищу материалы в интернете и собираю сценарий — обычно 1–3 минуты. Не отправляй новое сообщение, пока не придёт ответ."
+        ),
     },
     "en": {
         "start": (
@@ -118,6 +121,9 @@ MESSAGES = {
         ),
         "reels_topic_cancelled": "Okay, cancelled. Use /reel or the button when you want a script again.",
         "reels_topic_too_short": "Please add a bit more detail (at least a couple of sentences) so I can find relevant sources.",
+        "reels_topic_processing": (
+            "Got it. Searching the web and drafting your script — usually 1–3 minutes. Please wait for my reply before sending another message."
+        ),
     },
 }
 
