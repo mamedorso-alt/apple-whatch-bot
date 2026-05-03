@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, Header, HTTPException, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -13,9 +13,10 @@ from app.i18n.telegram import msg
 from app.schemas.link import LinkCodeResponse
 from app.services.linking import generate_link_code
 from app.services.reels_schedule import (
+    deliver_reels_manual_random_new_session,
+    finish_reels_manual_user_topic_job_new_session,
     prompt_reels_topic_flow,
-    run_reels_manual_delivery,
-    run_reels_manual_with_user_topic,
+    try_claim_reels_user_topic,
 )
 from app.services.reels_support import REELS_TRIGGER_TEXTS, is_reels_allowlisted, reels_reply_keyboard_markup
 from app.services.telegram import (
@@ -43,6 +44,7 @@ def create_link_code(
 @router.post("/webhook")
 async def telegram_webhook(
     payload: dict,
+    background_tasks: BackgroundTasks,
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
     db: Session = Depends(get_db),
 ) -> dict[str, str]:
@@ -119,14 +121,7 @@ async def telegram_webhook(
             if user and user.reels_awaiting_custom_topic:
                 user.reels_awaiting_custom_topic = False
                 db.commit()
-            try:
-                await run_reels_manual_delivery(db, telegram_user_id, chat_id)
-            except Exception:
-                logger.exception("reels auto delivery failed")
-                await send_telegram_message(
-                    chat_id=chat_id,
-                    text=msg(user_lang, "generic_processing_error"),
-                )
+            background_tasks.add_task(deliver_reels_manual_random_new_session, telegram_user_id, chat_id)
             return {"status": "ok"}
 
         reels_ok = cfg.reels_agent_enabled and is_reels_allowlisted(telegram_user_id)
@@ -148,14 +143,19 @@ async def telegram_webhook(
                         reply_markup=reels_reply_keyboard_markup(user_lang),
                     )
                     return {"status": "ok"}
-                try:
-                    await run_reels_manual_with_user_topic(db, telegram_user_id, chat_id, ts)
-                except Exception:
-                    logger.exception("reels manual topic delivery failed")
-                    await send_telegram_message(
-                        chat_id=chat_id,
-                        text=msg(user_lang, "generic_processing_error"),
-                    )
+                ok_claim, lang_claim, delivery_date = await try_claim_reels_user_topic(
+                    db, telegram_user_id, chat_id
+                )
+                if not ok_claim:
+                    return {"status": "ok"}
+                background_tasks.add_task(
+                    finish_reels_manual_user_topic_job_new_session,
+                    telegram_user_id,
+                    chat_id,
+                    ts,
+                    lang_claim,
+                    delivery_date,
+                )
                 return {"status": "ok"}
             user.reels_awaiting_custom_topic = False
             db.commit()

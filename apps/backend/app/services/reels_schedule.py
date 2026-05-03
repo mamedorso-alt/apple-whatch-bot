@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -110,11 +110,10 @@ async def prompt_reels_topic_flow(db: Session, telegram_user_id: int, chat_id: i
     )
 
 
-async def run_reels_manual_with_user_topic(
-    db: Session, telegram_user_id: int, chat_id: int, topic: str
-) -> None:
-    """Generate a script from the user's brief. Clears awaiting only after an atomic claim to avoid Telegram retries
-    hitting the health coach while a long search+LLM call is still running."""
+async def try_claim_reels_user_topic(
+    db: Session, telegram_user_id: int, chat_id: int
+) -> tuple[bool, str, date]:
+    """Atomically clear reels_awaiting_custom_topic; send processing notice. Returns (claimed, lang, delivery_date)."""
     settings = get_settings()
     claimed = (
         db.query(User)
@@ -124,7 +123,7 @@ async def run_reels_manual_with_user_topic(
     db.commit()
     if claimed == 0:
         logger.info("reels topic: skip (no awaiting claim) telegram_user_id=%s", telegram_user_id)
-        return
+        return False, "ru", datetime.now(ZoneInfo(settings.default_timezone)).date()
 
     user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
     lang = user.language if user else "ru"
@@ -137,7 +136,18 @@ async def run_reels_manual_with_user_topic(
         delivery_date = datetime.now(ZoneInfo(tz_name)).date()
     except Exception:
         delivery_date = datetime.now(ZoneInfo(settings.default_timezone)).date()
+    return True, lang, delivery_date
 
+
+async def finish_reels_manual_user_topic_job(
+    db: Session,
+    telegram_user_id: int,
+    chat_id: int,
+    topic: str,
+    lang: str,
+    delivery_date: date,
+) -> None:
+    """Compose + send + log after claim; restore awaiting on failure."""
     try:
         body = await compose_reels_script_for_telegram_user(db, telegram_user_id, user_topic=topic)
         await send_telegram_messages_chunked(
@@ -168,8 +178,41 @@ async def run_reels_manual_with_user_topic(
         raise
 
 
-async def run_reels_manual_delivery(db: Session, telegram_user_id: int, chat_id: int) -> None:
-    """Random internet-seeded script (e.g. /reel_auto or after canceling topic wait)."""
+async def finish_reels_manual_user_topic_job_new_session(
+    telegram_user_id: int,
+    chat_id: int,
+    topic: str,
+    lang: str,
+    delivery_date: date,
+) -> None:
+    """Same as finish_reels_manual_user_topic_job with a fresh DB session (Telegram webhook background)."""
+    from app.db.session import SessionLocal
+
+    db = SessionLocal()
+    try:
+        await finish_reels_manual_user_topic_job(db, telegram_user_id, chat_id, topic, lang, delivery_date)
+    except Exception:
+        logger.exception("reels manual topic background failed telegram_user_id=%s", telegram_user_id)
+        try:
+            await send_telegram_message(chat_id, msg(lang, "generic_processing_error"))
+        except Exception:
+            logger.exception("reels manual topic: failed to send error to user")
+    finally:
+        db.close()
+
+
+async def run_reels_manual_with_user_topic(
+    db: Session, telegram_user_id: int, chat_id: int, topic: str
+) -> None:
+    """Generate a script from the user's brief (tests / in-process callers use the passed Session)."""
+    ok, lang, ddate = await try_claim_reels_user_topic(db, telegram_user_id, chat_id)
+    if not ok:
+        return
+    await finish_reels_manual_user_topic_job(db, telegram_user_id, chat_id, topic, lang, ddate)
+
+
+async def deliver_reels_manual_random_with_db(db: Session, telegram_user_id: int, chat_id: int) -> None:
+    """Random internet-seeded script using caller's Session."""
     settings = get_settings()
     user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
     lang = user.language if user else "ru"
@@ -194,3 +237,28 @@ async def run_reels_manual_delivery(db: Session, telegram_user_id: int, chat_id:
         )
     )
     db.commit()
+
+
+async def deliver_reels_manual_random_new_session(telegram_user_id: int, chat_id: int) -> None:
+    """Random reel for /reel_auto — fresh Session for webhook background."""
+    from app.db.session import SessionLocal
+
+    db = SessionLocal()
+    try:
+        await deliver_reels_manual_random_with_db(db, telegram_user_id, chat_id)
+    except Exception:
+        logger.exception("reels manual random delivery failed telegram_user_id=%s", telegram_user_id)
+        db.rollback()
+        try:
+            u = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+            lang = u.language if u else "ru"
+            await send_telegram_message(chat_id, msg(lang, "generic_processing_error"))
+        except Exception:
+            logger.exception("reels manual random: failed to send error")
+    finally:
+        db.close()
+
+
+async def run_reels_manual_delivery(db: Session, telegram_user_id: int, chat_id: int) -> None:
+    """Random internet-seeded script (e.g. /reel_auto); `db` is used for reads/writes."""
+    await deliver_reels_manual_random_with_db(db, telegram_user_id, chat_id)

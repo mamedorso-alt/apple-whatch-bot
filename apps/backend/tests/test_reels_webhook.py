@@ -168,10 +168,10 @@ def test_webhook_reel_auto_calls_random_delivery(monkeypatch):
 
     calls: list[tuple[int, int]] = []
 
-    async def fake_manual(db, telegram_user_id: int, chat_id: int) -> None:
+    async def fake_manual(telegram_user_id: int, chat_id: int) -> None:
         calls.append((telegram_user_id, chat_id))
 
-    monkeypatch.setattr("app.api.routes.telegram.run_reels_manual_delivery", fake_manual)
+    monkeypatch.setattr("app.api.routes.telegram.deliver_reels_manual_random_new_session", fake_manual)
 
     settings = get_settings()
     webhook_headers = {}
@@ -214,10 +214,15 @@ def test_webhook_reel_free_text_after_awaiting_triggers_topic_delivery(monkeypat
 
     calls: list[tuple[int, str]] = []
 
-    async def fake_topic(db, telegram_user_id: int, chat_id: int, topic: str) -> None:
+    async def fake_topic(
+        telegram_user_id: int, chat_id: int, topic: str, lang: str, delivery_date
+    ) -> None:
         calls.append((telegram_user_id, topic[:40]))
 
-    monkeypatch.setattr("app.api.routes.telegram.run_reels_manual_with_user_topic", fake_topic)
+    monkeypatch.setattr(
+        "app.api.routes.telegram.finish_reels_manual_user_topic_job_new_session",
+        fake_topic,
+    )
 
     settings = get_settings()
     webhook_headers = {}
