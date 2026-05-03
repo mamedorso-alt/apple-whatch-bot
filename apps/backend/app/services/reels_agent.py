@@ -17,6 +17,76 @@ from app.services.ai_coach import _anthropic_usage, _clean_generated_text
 
 logger = logging.getLogger(__name__)
 
+REELS_TOPIC_FRAMING_RU = (
+    "Задача для ролика (обязательно соблюдай смысл):\n"
+    "- Разоблачаем в основном **вирусный/коммерческий хайп** вокруг слова «выгорание»: курсы, страх, размытые диагнозы в соцсетях, продажи «лечения» без опоры на факты.\n"
+    "- **Одной короткой фразой** можно признать: длительный стресс и клиническое истощение — серьёзная тема, когда к ней подходят профессионально. Этот ролик **не** отрицает это ради шока.\n"
+    "- **Нельзя** отказываться писать сценарий фразами вроде «не буду разносить» — вместо отказа переформулируй удар по **индустрии слов и денег**, а не по людям в беде.\n"
+    "- Ведущий обращается к **обезличенной аудитории** в формате Reels, без «твоих» данных сна/шагов/скора из часов — этих цифр у тебя в контексте нет.\n"
+)
+
+REELS_TOPIC_FRAMING_EN = (
+    "Reel angle (mandatory):\n"
+    "- Debunk mainly **viral/commercial hype** around “burnout”: course mills, fear-selling, sloppy pop-psych labels on social.\n"
+    "- In **one short sentence** you may acknowledge prolonged stress / clinical exhaustion is serious when handled properly. This reel does **not** deny that for shock value.\n"
+    "- You must **not refuse** the script (no “I won’t tear this down…”). Reframe as attacking **industry wording and monetization**, not attacking sufferers.\n"
+    "- Host speaks to a **generic audience** on camera. No private wearable stats (sleep/steps/score) — they are not in your context.\n"
+)
+
+REELS_REGENERATION_RU = (
+    "=== ПЕРЕГЕНЕРАЦИЯ (второй черновик) ===\n"
+    "Предыдущий ответ нарушил ТЗ: был отказ, уход в личный коучинг, выдуманные «твои» метрики сна/шагов/скора, или не было чёткого сценария Reels.\n"
+    "Сейчас выдай **заново все 6 разделов** с нуля, строго по заголовкам. Только хайп/монетизация/мифы вокруг темы. "
+    "Не отказывайся. Не выдумывай персональные цифры зрителя. Используй тот же Search JSON."
+)
+
+REELS_REGENERATION_EN = (
+    "=== REGENERATION (second draft) ===\n"
+    "The previous answer broke spec: refusal, personal wellness pivot, invented viewer sleep/steps/score, or missing the Reels script block.\n"
+    "Regenerate **all six sections** from scratch with the exact headings. Focus on hype/monetization/myths only. "
+    "Do not refuse. Do not invent private viewer metrics. Use the same Search JSON."
+)
+
+
+def _reels_output_failed_spec(text: str, lang: str) -> bool:
+    """Detect refusals or coach-style hallucinated personal metrics so we can retry once."""
+    raw = (text or "").strip()
+    if not raw or len(raw) < 200:
+        return False
+    low = raw.lower()
+    if lang == "en":
+        refusal = ("i won't", "i will not", "i refuse", "can't tear", "cannot tear", "not fair to tear", "i can't in good faith")
+        if any(m in low for m in refusal):
+            return True
+        if ("your sleep" in low or "your steps" in low) and ("score" in low or "/100" in low):
+            return True
+        return False
+    refusal_ru = (
+        "не буду",
+        "не стану",
+        "не могу разнести",
+        "отказываюсь",
+        "не буду разносить",
+        "не разнесу",
+        "не стану разносить",
+    )
+    if any(m in low for m in refusal_ru):
+        return True
+    if "не справедливо" in low and ("разнести" in low or "разнос" in low):
+        return True
+    if "интересная тема" in low and ("но я не буду" in low or "но не буду" in low or "но я не стану" in low):
+        return True
+    if ("у тебя" in low or "у вас" in low or "твой" in low or "твоё" in low or "твои " in low) and (
+        ("сон" in low and ("мин" in low or "час" in low)) or "шаг" in low or "скор" in low or "/100" in low or " из 100" in low
+    ):
+        return True
+    # Wellness pivot: several concrete "today" stats in one answer (hallucinated watch data)
+    ru_stat_markers = sum(1 for k in ("сон", "шаг", "скор", "активност", "0 мин", " из 100", "/100") if k in low)
+    if ru_stat_markers >= 3 and ("сегодня" in low or "сейчас" in low or "факт" in low):
+        return True
+    return False
+
+
 MYTH_SEEDS_RU = [
     "миф многозадачность продуктивность исследования",
     "мотивация только деньгами бизнес миф",
@@ -219,6 +289,8 @@ async def _generate_reels_with_anthropic(
     *,
     user_id: UUID | None = None,
     creator_brief: str | None = None,
+    correction_note: str | None = None,
+    temperature: float = 0.45,
 ) -> str:
     settings = get_settings()
     if not settings.anthropic_api_key:
@@ -244,6 +316,8 @@ async def _generate_reels_with_anthropic(
         "them you are hallucinating. You may only mention such numbers if they literally appear inside the Search JSON snippets.\n"
         "- Do NOT pivot into personal counselling, 'how are you feeling', or lifestyle coaching. Stay on the public claim / "
         "internet discourse and the debunk for a broad audience.\n"
+        "- You must NEVER refuse to deliver the full six-section output (no moral 'I won't…' / 'не буду…' gatekeeping). "
+        "If the creator brief targets hype, industry, or wording around a sensitive topic, debunk THAT responsibly instead of refusing.\n"
         "- No personal attacks; critique ideas and common claims, not named individuals unless they are clearly "
         "public figures tied to the claim in the snippets.\n"
         "Output structure (same language as requested), use these headings exactly — no extra sections before or after:\n"
@@ -268,8 +342,11 @@ async def _generate_reels_with_anthropic(
             "Do not treat the creator note as medical history or personal health data.\n"
             f"{creator_brief}"
         )
+    if correction_note:
+        user_prompt += "\n\n" + correction_note.strip() + "\n"
 
     timeout = max(30, int(settings.reels_agent_anthropic_timeout_sec))
+    temp = max(0.0, min(1.0, float(temperature)))
     async with httpx.AsyncClient(timeout=timeout) as client:
         response = await client.post(
             "https://api.anthropic.com/v1/messages",
@@ -281,6 +358,7 @@ async def _generate_reels_with_anthropic(
             json={
                 "model": settings.anthropic_model,
                 "max_tokens": max(800, min(4096, settings.reels_agent_anthropic_max_tokens)),
+                "temperature": temp,
                 "system": system_prompt,
                 "messages": [{"role": "user", "content": user_prompt}],
             },
@@ -331,10 +409,29 @@ async def compose_reels_script(
                 if lang != "en"
                 else f"{hint}\n\n[Service: only one search URL — stay cautious; Sources section may list only that URL.]"
             )
+        framing = REELS_TOPIC_FRAMING_EN if lang == "en" else REELS_TOPIC_FRAMING_RU
+        full_brief = f"{framing}\n\n---\n\n{brief}"
         try:
-            return await _generate_reels_with_anthropic(
-                lang, merged, user_id=user_id, creator_brief=brief
+            text = await _generate_reels_with_anthropic(
+                lang,
+                merged,
+                user_id=user_id,
+                creator_brief=full_brief,
+                correction_note=None,
+                temperature=0.45,
             )
+            if _reels_output_failed_spec(text, lang):
+                logger.warning("reels output failed spec, one retry lang=%s", lang)
+                regen = REELS_REGENERATION_EN if lang == "en" else REELS_REGENERATION_RU
+                text = await _generate_reels_with_anthropic(
+                    lang,
+                    merged,
+                    user_id=user_id,
+                    creator_brief=full_brief,
+                    correction_note=regen,
+                    temperature=0.25,
+                )
+            return text
         except Exception:
             logger.exception("reels anthropic failed")
             return msg(lang, "reels_ai_failed")
@@ -351,7 +448,9 @@ async def compose_reels_script(
         return msg(lang, "reels_search_empty")
 
     try:
-        return await _generate_reels_with_anthropic(lang, merged, user_id=user_id, creator_brief=None)
+        return await _generate_reels_with_anthropic(
+            lang, merged, user_id=user_id, creator_brief=None, correction_note=None, temperature=0.55
+        )
     except Exception:
         logger.exception("reels anthropic failed")
         return msg(lang, "reels_ai_failed")

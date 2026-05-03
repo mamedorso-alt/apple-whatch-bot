@@ -25,3 +25,35 @@ def test_search_queries_en_burnout():
     qs = ra._search_queries_from_user_hint("Burnout is overused by coaches to sell courses", "en")
     assert len(qs) >= 3
     assert any("burnout" in q.lower() for q in qs)
+
+
+def test_reels_output_failed_spec_refusal_ru():
+    bad = "Интересная тема, но я не буду разносить концепцию выгорания — это несправедливо. " * 15
+    assert ra._reels_output_failed_spec(bad, "ru") is True
+
+
+def test_reels_output_failed_spec_wellness_pivot_ru():
+    bad = (
+        "Сон: 0 минут. Шаги: 328. Скор: 42 из 100. Активность почти ноль. "
+        "Это конкретные факты твоего тела сегодня. Что происходит? " * 8
+    )
+    assert ra._reels_output_failed_spec(bad, "ru") is True
+
+
+def test_reels_output_failed_spec_ok_script_ru():
+    ok = (
+        "1) Шаг 1 — Тема: хайп вокруг слова «выгорание» в соцсетях.\n"
+        "2) Шаг 2 — Спорное утверждение: все «выгорели» без критериев.\n"
+        "3) Шаг 2 — Опровержение: термин появился в 1970-х; см. сниппеты.\n"
+        "4) Шаг 3 — Сценарий Reels — Хук (0–3с): «Выгорание — модное слово?»\n"
+        "5) Источники — https://example.com\n"
+        "6) Проверьте ссылки перед публикацией.\n" * 20
+    )
+    assert ra._reels_output_failed_spec(ok, "ru") is False
+
+
+def test_reels_output_failed_spec_refusal_en():
+    bad = (
+        "Interesting topic, but I won't tear down burnout — it's not fair to sufferers. " * 20
+    )
+    assert ra._reels_output_failed_spec(bad, "en") is True
