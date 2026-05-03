@@ -84,3 +84,43 @@ def test_scheduled_reels_off_returns_zeros(monkeypatch):
     monkeypatch.setattr(reels_schedule_mod, "get_settings", lambda: _Off())
     out = asyncio.run(reels_schedule_mod.run_reels_agent_scheduled(db))
     assert out == {"sent": 0, "skipped": 0}
+
+
+def test_manual_topic_atomic_claim_skips_second_call(monkeypatch):
+    """Second concurrent-style call must not send again if awaiting was already cleared."""
+    db = _session()
+    uid = uuid4()
+    db.add(
+        User(
+            id=uid,
+            created_at=datetime.now(timezone.utc),
+            timezone="UTC",
+            language="ru",
+            telegram_user_id=888,
+            is_linked=True,
+            api_token_hash="x" * 64,
+            reels_awaiting_custom_topic=True,
+        )
+    )
+    db.commit()
+
+    sent: list[int] = []
+
+    async def fake_chunked(*_a, **_kw) -> None:
+        sent.append(1)
+
+    async def fake_compose(_db, _tid, user_topic=None) -> str:
+        return "SCRIPT"
+
+    monkeypatch.setattr(reels_schedule_mod, "compose_reels_script_for_telegram_user", fake_compose)
+    monkeypatch.setattr(reels_schedule_mod, "send_telegram_messages_chunked", fake_chunked)
+
+    async def run_both() -> None:
+        await reels_schedule_mod.run_reels_manual_with_user_topic(db, 888, 888, "first topic " * 3)
+        await reels_schedule_mod.run_reels_manual_with_user_topic(db, 888, 888, "second topic " * 3)
+
+    asyncio.run(run_both())
+    assert len(sent) == 1
+    u = db.query(User).filter(User.telegram_user_id == 888).first()
+    assert u is not None
+    assert u.reels_awaiting_custom_topic is False

@@ -113,7 +113,19 @@ async def prompt_reels_topic_flow(db: Session, telegram_user_id: int, chat_id: i
 async def run_reels_manual_with_user_topic(
     db: Session, telegram_user_id: int, chat_id: int, topic: str
 ) -> None:
+    """Generate a script from the user's brief. Clears awaiting only after an atomic claim to avoid Telegram retries
+    hitting the health coach while a long search+LLM call is still running."""
     settings = get_settings()
+    claimed = (
+        db.query(User)
+        .filter(User.telegram_user_id == telegram_user_id, User.reels_awaiting_custom_topic.is_(True))
+        .update({"reels_awaiting_custom_topic": False}, synchronize_session=False)
+    )
+    db.commit()
+    if claimed == 0:
+        logger.info("reels topic: skip (no awaiting claim) telegram_user_id=%s", telegram_user_id)
+        return
+
     user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
     lang = user.language if user else "ru"
     tz_name = (user.timezone if user else None) or settings.default_timezone
@@ -122,21 +134,34 @@ async def run_reels_manual_with_user_topic(
     except Exception:
         delivery_date = datetime.now(ZoneInfo(settings.default_timezone)).date()
 
-    body = await compose_reels_script_for_telegram_user(db, telegram_user_id, user_topic=topic)
-    await send_telegram_messages_chunked(
-        chat_id,
-        body,
-        reply_markup=reels_reply_keyboard_markup(lang),
-    )
-    db.add(
-        ReelsAgentDailyLog(
-            telegram_user_id=telegram_user_id,
-            delivery_date=delivery_date,
-            source="manual_topic",
-            payload_preview=body[:500],
+    try:
+        body = await compose_reels_script_for_telegram_user(db, telegram_user_id, user_topic=topic)
+        await send_telegram_messages_chunked(
+            chat_id,
+            body,
+            reply_markup=reels_reply_keyboard_markup(lang),
         )
-    )
-    db.commit()
+        db.add(
+            ReelsAgentDailyLog(
+                telegram_user_id=telegram_user_id,
+                delivery_date=delivery_date,
+                source="manual_topic",
+                payload_preview=body[:500],
+            )
+        )
+        db.commit()
+    except Exception:
+        logger.exception("reels manual topic failed telegram_user_id=%s", telegram_user_id)
+        db.rollback()
+        try:
+            db.query(User).filter(User.telegram_user_id == telegram_user_id).update(
+                {"reels_awaiting_custom_topic": True},
+                synchronize_session=False,
+            )
+            db.commit()
+        except Exception:
+            logger.exception("reels manual topic: could not restore awaiting flag")
+        raise
 
 
 async def run_reels_manual_delivery(db: Session, telegram_user_id: int, chat_id: int) -> None:

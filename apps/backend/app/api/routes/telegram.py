@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import threading
 
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
@@ -30,6 +31,22 @@ from app.services.telegram import (
 router = APIRouter(prefix="/v1/telegram", tags=["telegram"])
 logger = logging.getLogger(__name__)
 
+_dedup_lock = threading.Lock()
+_seen_telegram_update_ids: dict[int, None] = {}
+
+
+def _is_duplicate_telegram_update(update_id: int | None) -> bool:
+    """Telegram may retry the same update if our handler is slow; avoid double-processing (e.g. coach + reels)."""
+    if update_id is None:
+        return False
+    with _dedup_lock:
+        if update_id in _seen_telegram_update_ids:
+            return True
+        _seen_telegram_update_ids[update_id] = None
+        if len(_seen_telegram_update_ids) > 8000:
+            _seen_telegram_update_ids.clear()
+        return False
+
 
 @router.post("/link-code", response_model=LinkCodeResponse)
 def create_link_code(
@@ -50,6 +67,9 @@ async def telegram_webhook(
     if cfg.telegram_webhook_secret:
         if x_telegram_bot_api_secret_token != cfg.telegram_webhook_secret:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid webhook secret")
+
+    if _is_duplicate_telegram_update(payload.get("update_id")):
+        return {"status": "ok"}
 
     cq = payload.get("callback_query")
     if cq:
@@ -148,8 +168,6 @@ async def telegram_webhook(
                         reply_markup=reels_reply_keyboard_markup(user_lang),
                     )
                     return {"status": "ok"}
-                user.reels_awaiting_custom_topic = False
-                db.commit()
                 try:
                     await run_reels_manual_with_user_topic(db, telegram_user_id, chat_id, ts)
                 except Exception:
