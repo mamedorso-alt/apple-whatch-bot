@@ -57,3 +57,25 @@ def test_reels_output_failed_spec_refusal_en():
         "Interesting topic, but I won't tear down burnout — it's not fair to sufferers. " * 20
     )
     assert ra._reels_output_failed_spec(bad, "en") is True
+
+
+def test_reels_output_failed_spec_pro_tebya_coach_ru():
+    bad = (
+        "Справедливая критика. Теперь про тебя конкретно: сегодня скор 42, 0 минут сна, 328 шагов. "
+        "Это не абстрактное выгорание. Вместо дискуссии. " * 12
+    )
+    assert ra._reels_output_failed_spec(bad, "ru") is True
+
+
+def test_reels_output_failed_spec_long_essay_no_step3_ru():
+    bad = (
+        "ВОЗ и МКБ-11 признают выгорание. Нейробиология: кортизол, ВСР. "
+        "Давай честно: критика индустрии не отменяет клинику. " * 25
+    )
+    assert ra._reels_output_failed_spec(bad, "ru") is True
+
+
+def test_reels_has_script_skeleton():
+    s = "4) Шаг 3 — Сценарий Reels — Хук (0–3с): тест"
+    assert ra._reels_has_script_skeleton(s, "ru") is True
+    assert ra._reels_has_script_skeleton("Long essay with WHO and ICD-11 " * 30, "ru") is False

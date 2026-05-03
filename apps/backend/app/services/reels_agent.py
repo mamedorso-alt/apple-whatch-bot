@@ -47,9 +47,31 @@ REELS_REGENERATION_EN = (
     "Do not refuse. Do not invent private viewer metrics. Use the same Search JSON."
 )
 
+REELS_REGENERATION_STRICT_RU = (
+    "=== ПЕРЕГЕНЕРАЦИЯ (ещё строже) ===\n"
+    "Запрещено: разделы «про тебя конкретно», «теперь про тебя», спор с автором вместо сценария, ВОЗ/МКБ как кнут против зрителя, "
+    "любые цифры сна/шагов/скора «сегодня у зрителя» (их нет в данных).\n"
+    "Нужен только публичный Reels: хук, завязка, развязка в блоке «Шаг 3 — Сценарий Reels». Все 6 заголовков — как в system prompt."
+)
+
+REELS_REGENERATION_STRICT_EN = (
+    "=== REGENERATION (stricter) ===\n"
+    "Forbidden: sections like 'about you specifically', arguing with the creator instead of a script, WHO/ICD as a club against the viewer, "
+    "any invented today's sleep/steps/score for the viewer.\n"
+    "Only a public Reels debunk: hook/build/payoff inside 'Step 3 — Reels script'. All six headings exactly as in the system prompt."
+)
+
+
+def _reels_has_script_skeleton(text: str, lang: str) -> bool:
+    """True if output looks like the required six-section reel (at least Step 3 script block)."""
+    low = (text or "").lower()
+    if lang == "en":
+        return ("step 3" in low and "reels" in low) or ("step 3" in low and "script" in low)
+    return ("шаг 3" in low and "сценарий" in low) or ("шаг 3" in low and "reels" in low)
+
 
 def _reels_output_failed_spec(text: str, lang: str) -> bool:
-    """Detect refusals or coach-style hallucinated personal metrics so we can retry once."""
+    """Detect refusals, coach pivots, or missing script structure so we can retry."""
     raw = (text or "").strip()
     if not raw or len(raw) < 200:
         return False
@@ -59,6 +81,10 @@ def _reels_output_failed_spec(text: str, lang: str) -> bool:
         if any(m in low for m in refusal):
             return True
         if ("your sleep" in low or "your steps" in low) and ("score" in low or "/100" in low):
+            return True
+        if "about you" in low and ("specifically" in low or "personally" in low or "your data" in low):
+            return True
+        if len(raw) > 400 and not _reels_has_script_skeleton(raw, "en"):
             return True
         return False
     refusal_ru = (
@@ -76,6 +102,11 @@ def _reels_output_failed_spec(text: str, lang: str) -> bool:
         return True
     if "интересная тема" in low and ("но я не буду" in low or "но не буду" in low or "но я не стану" in low):
         return True
+    # Coach essay: «про тебя конкретно» — модель пишет не сценарий для камеры, а разбор адресата
+    if "про тебя" in low and ("конкретно" in low or "лично" in low):
+        return True
+    if ("теперь про тебя" in low) or ("давай честно" in low and "скор" in low):
+        return True
     if ("у тебя" in low or "у вас" in low or "твой" in low or "твоё" in low or "твои " in low) and (
         ("сон" in low and ("мин" in low or "час" in low)) or "шаг" in low or "скор" in low or "/100" in low or " из 100" in low
     ):
@@ -83,6 +114,9 @@ def _reels_output_failed_spec(text: str, lang: str) -> bool:
     # Wellness pivot: several concrete "today" stats in one answer (hallucinated watch data)
     ru_stat_markers = sum(1 for k in ("сон", "шаг", "скор", "активност", "0 мин", " из 100", "/100") if k in low)
     if ru_stat_markers >= 3 and ("сегодня" in low or "сейчас" in low or "факт" in low):
+        return True
+    # Длинный текст без каркаса сценария Reels — почти наверняка эссе/коучинг
+    if len(raw) > 400 and not _reels_has_script_skeleton(raw, "ru"):
         return True
     return False
 
@@ -316,6 +350,9 @@ async def _generate_reels_with_anthropic(
         "them you are hallucinating. You may only mention such numbers if they literally appear inside the Search JSON snippets.\n"
         "- Do NOT pivot into personal counselling, 'how are you feeling', or lifestyle coaching. Stay on the public claim / "
         "internet discourse and the debunk for a broad audience.\n"
+        "- NEVER address the creator or viewer with private check-ins: no sections like 'about you specifically', "
+        "'now about you', 'your score today', debating the prompt author, or using WHO/ICD/clinical authority as a club against the viewer. "
+        "No invented wearable numbers.\n"
         "- You must NEVER refuse to deliver the full six-section output (no moral 'I won't…' / 'не буду…' gatekeeping). "
         "If the creator brief targets hype, industry, or wording around a sensitive topic, debunk THAT responsibly instead of refusing.\n"
         "- No personal attacks; critique ideas and common claims, not named individuals unless they are clearly "
@@ -418,10 +455,10 @@ async def compose_reels_script(
                 user_id=user_id,
                 creator_brief=full_brief,
                 correction_note=None,
-                temperature=0.45,
+                temperature=0.42,
             )
             if _reels_output_failed_spec(text, lang):
-                logger.warning("reels output failed spec, one retry lang=%s", lang)
+                logger.warning("reels output failed spec, retry 1/2 lang=%s", lang)
                 regen = REELS_REGENERATION_EN if lang == "en" else REELS_REGENERATION_RU
                 text = await _generate_reels_with_anthropic(
                     lang,
@@ -430,6 +467,17 @@ async def compose_reels_script(
                     creator_brief=full_brief,
                     correction_note=regen,
                     temperature=0.25,
+                )
+            if _reels_output_failed_spec(text, lang):
+                logger.warning("reels output failed spec, retry 2/2 lang=%s", lang)
+                strict = REELS_REGENERATION_STRICT_EN if lang == "en" else REELS_REGENERATION_STRICT_RU
+                text = await _generate_reels_with_anthropic(
+                    lang,
+                    merged,
+                    user_id=user_id,
+                    creator_brief=full_brief,
+                    correction_note=strict,
+                    temperature=0.15,
                 )
             return text
         except Exception:
