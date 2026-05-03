@@ -226,21 +226,27 @@ async def _generate_reels_with_anthropic(
 
     allowed_urls = [item["href"] for item in search_payload if item.get("href")]
     system_prompt = (
-        "You help create an Instagram Reels script that debunks misleading business or psychology claims. "
+        "You write content for Instagram Reels ONLY: a debunk / myth-busting short video about business or psychology. "
+        "You are NOT a therapist, NOT a personal health coach, and NOT an Apple Watch / fitness app assistant. "
         "You receive JSON with real web search snippets (title, href, body). Follow this pipeline:\n"
         "STEP 1 — From the snippets, name one concrete popular or viral claim that looks false, "
         "oversimplified, or fairly questionable (business or psychology). Say why it is problematic in one short phrase.\n"
         "STEP 2 — Using ONLY the snippet bodies and titles, summarize counter-evidence: facts, research pointers, "
         "or clear logical flaws. If snippets only hint at science, say 'suggests' not 'proves'. "
         "If evidence is weak or mixed, say so briefly.\n"
-        "STEP 3 — Write a Reels script optimized for reach and retention: strong pattern-interrupt hook (0–3s), "
-        "tight middle that builds curiosity, payoff that delivers the debunk without feeling preachy. "
-        "Include brief on-screen text hints. Optional one-line CTA (save / follow / comment) that fits the tone.\n"
+        "STEP 3 — Write a Reels SHOOTING SCRIPT (spoken lines + beats), not an essay: strong hook (0–3s), "
+        "middle builds tension, payoff delivers the debunk. Include on-screen text hints and rough timing. "
+        "Optional one-line CTA (save / follow / comment). Address the generic viewer / audience, not one person's private life.\n"
         "Hard rules:\n"
         "- Do not invent URLs or paper titles. Every URL you cite MUST appear exactly in the provided JSON href list.\n"
+        "- NEVER invent or mention the reader's private biometrics: sleep hours, steps, HRV, heart rate, daily score, "
+        "recovery mode, wearable logs, or any personal health stats. Those values are NOT in your context — if you cite "
+        "them you are hallucinating. You may only mention such numbers if they literally appear inside the Search JSON snippets.\n"
+        "- Do NOT pivot into personal counselling, 'how are you feeling', or lifestyle coaching. Stay on the public claim / "
+        "internet discourse and the debunk for a broad audience.\n"
         "- No personal attacks; critique ideas and common claims, not named individuals unless they are clearly "
         "public figures tied to the claim in the snippets.\n"
-        "Output structure (same language as requested), use these headings exactly:\n"
+        "Output structure (same language as requested), use these headings exactly — no extra sections before or after:\n"
         "1) Шаг 1 — Тема / Step 1 — Topic — one line\n"
         "2) Шаг 2 — Спорное утверждение / Step 2 — Dubious claim — 2–4 sentences\n"
         "3) Шаг 2 — Опровержение и опора / Step 2 — Refutation & support — 3–7 sentences, plain language\n"
@@ -251,13 +257,15 @@ async def _generate_reels_with_anthropic(
     )
     user_prompt = (
         f"Language for the entire output: {'English' if lang == 'en' else 'Russian'}\n"
+        f"Deliverable: a single Reel debunk script for social media, following the six headings. Not a chat reply.\n"
         f"Allowed URL list (you may only cite these): {json.dumps(allowed_urls, ensure_ascii=False)}\n"
         f"Search JSON:\n{json.dumps(search_payload, ensure_ascii=False)}"
     )
     if creator_brief:
         user_prompt += (
-            "\n\nCreator direction (use only as angle and framing; every factual claim must still be "
-            "supported by the search JSON above, not invented):\n"
+            "\n\nCreator direction — use ONLY as angle / hook ideas / which myth to attack. "
+            "All factual points in sections 2–3 must still be grounded in the Search JSON, not invented. "
+            "Do not treat the creator note as medical history or personal health data.\n"
             f"{creator_brief}"
         )
 
