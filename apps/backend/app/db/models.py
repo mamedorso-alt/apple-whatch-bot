@@ -22,6 +22,7 @@ class User(Base):
     telegram_user_id: Mapped[Optional[int]] = mapped_column(BigInteger, unique=True, nullable=True)
     is_linked: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     api_token_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    reels_awaiting_custom_topic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
 
     link_codes: Mapped[list["LinkCode"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     profile: Mapped[Optional["UserProfile"]] = relationship(back_populates="user", uselist=False, cascade="all, delete-orphan")

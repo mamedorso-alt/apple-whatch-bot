@@ -40,13 +40,19 @@ def test_scheduled_reels_dedup_same_day(monkeypatch):
     )
     db.commit()
 
-    monkeypatch.setattr(reels_schedule_mod, "_is_within_window", lambda *_a, **_kw: True)
-    monkeypatch.setattr(reels_schedule_mod.settings, "reels_agent_enabled", True)
-    monkeypatch.setattr(reels_schedule_mod.settings, "reels_agent_telegram_user_ids", "999")
-    monkeypatch.setattr(reels_schedule_mod.settings, "scheduler_interval_min", 30)
-    monkeypatch.setattr(reels_schedule_mod.settings, "default_timezone", "UTC")
+    class _Cfg:
+        reels_agent_enabled = True
+        reels_agent_telegram_user_ids = "999"
+        reels_agent_send_window_minutes = 120
+        reels_agent_timezone = ""
+        reels_agent_daily_hour = 10
+        reels_agent_daily_minute = 0
+        default_timezone = "UTC"
 
-    async def fake_compose(_db, _tid):
+    monkeypatch.setattr(reels_schedule_mod, "_is_within_window", lambda *_a, **_kw: True)
+    monkeypatch.setattr(reels_schedule_mod, "get_settings", lambda: _Cfg())
+
+    async def fake_compose(_db, _tid, user_topic=None):
         return "SCRIPT_BODY"
 
     sent: list[tuple[int, str]] = []
@@ -71,6 +77,10 @@ def test_scheduled_reels_dedup_same_day(monkeypatch):
 
 def test_scheduled_reels_off_returns_zeros(monkeypatch):
     db = _session()
-    monkeypatch.setattr(reels_schedule_mod.settings, "reels_agent_enabled", False)
+
+    class _Off:
+        reels_agent_enabled = False
+
+    monkeypatch.setattr(reels_schedule_mod, "get_settings", lambda: _Off())
     out = asyncio.run(reels_schedule_mod.run_reels_agent_scheduled(db))
     assert out == {"sent": 0, "skipped": 0}

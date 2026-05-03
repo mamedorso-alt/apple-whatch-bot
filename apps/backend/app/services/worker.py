@@ -7,25 +7,28 @@ from app.db.session import SessionLocal
 from app.services.reels_schedule import run_reels_agent_scheduled
 from app.services.scheduler import run_scheduled_reports
 
-settings = get_settings()
 scheduler = AsyncIOScheduler()
 
 
 async def _run_tick() -> None:
+    s = get_settings()
     db = SessionLocal()
     try:
-        await run_scheduled_reports(db)
+        if s.scheduler_enabled:
+            await run_scheduled_reports(db)
         await run_reels_agent_scheduled(db)
     finally:
         db.close()
 
 
 def start_scheduler() -> None:
-    if not settings.scheduler_enabled:
+    s = get_settings()
+    if not s.scheduler_enabled and not s.reels_agent_enabled:
         return
     if scheduler.running:
         return
-    scheduler.add_job(_run_tick, "interval", minutes=max(1, settings.scheduler_interval_min), id="scheduled-reports", replace_existing=True)
+    interval = max(1, s.scheduler_interval_min)
+    scheduler.add_job(_run_tick, "interval", minutes=interval, id="scheduled-reports", replace_existing=True)
     scheduler.start()
 
 

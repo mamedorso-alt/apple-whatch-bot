@@ -9,12 +9,12 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.models import ReelsAgentDailyLog, User
+from app.i18n.telegram import msg
 from app.services.reels_agent import compose_reels_script_for_telegram_user
-from app.services.reels_support import parse_reels_telegram_user_ids
-from app.services.telegram import send_telegram_messages_chunked
+from app.services.reels_support import parse_reels_telegram_user_ids, reels_reply_keyboard_markup
+from app.services.telegram import send_telegram_message, send_telegram_messages_chunked
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 
 def _is_within_window(now_local: datetime, target_hour: int, target_minute: int, window_minutes: int) -> bool:
@@ -23,6 +23,7 @@ def _is_within_window(now_local: datetime, target_hour: int, target_minute: int,
 
 
 async def run_reels_agent_scheduled(db: Session) -> dict[str, Any]:
+    settings = get_settings()
     if not settings.reels_agent_enabled:
         return {"sent": 0, "skipped": 0}
 
@@ -37,7 +38,7 @@ async def run_reels_agent_scheduled(db: Session) -> dict[str, Any]:
         tz = ZoneInfo(settings.default_timezone)
 
     now_local = datetime.now(tz)
-    window_minutes = max(1, settings.scheduler_interval_min)
+    window_minutes = max(1, int(settings.reels_agent_send_window_minutes))
     if not _is_within_window(
         now_local,
         settings.reels_agent_daily_hour,
@@ -65,10 +66,9 @@ async def run_reels_agent_scheduled(db: Session) -> dict[str, Any]:
             continue
 
         try:
-            body = await compose_reels_script_for_telegram_user(db, tid)
+            body = await compose_reels_script_for_telegram_user(db, tid, user_topic=None)
             user = db.query(User).filter(User.telegram_user_id == tid).first()
             lang = user.language if user else "ru"
-            from app.services.reels_support import reels_reply_keyboard_markup
 
             await send_telegram_messages_chunked(
                 tid,
@@ -93,7 +93,27 @@ async def run_reels_agent_scheduled(db: Session) -> dict[str, Any]:
     return {"sent": sent, "skipped": skipped}
 
 
-async def run_reels_manual_delivery(db: Session, telegram_user_id: int, chat_id: int) -> None:
+async def prompt_reels_topic_flow(db: Session, telegram_user_id: int, chat_id: int) -> None:
+    """Ask the user for a topic / notes; next free-text message is consumed as the brief."""
+    settings = get_settings()
+    user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+    if not user:
+        await send_telegram_message(chat_id, msg("ru", "link_usage"))
+        return
+    lang = user.language
+    user.reels_awaiting_custom_topic = True
+    db.commit()
+    await send_telegram_message(
+        chat_id,
+        msg(lang, "reels_ask_topic"),
+        reply_markup=reels_reply_keyboard_markup(lang),
+    )
+
+
+async def run_reels_manual_with_user_topic(
+    db: Session, telegram_user_id: int, chat_id: int, topic: str
+) -> None:
+    settings = get_settings()
     user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
     lang = user.language if user else "ru"
     tz_name = (user.timezone if user else None) or settings.default_timezone
@@ -102,9 +122,35 @@ async def run_reels_manual_delivery(db: Session, telegram_user_id: int, chat_id:
     except Exception:
         delivery_date = datetime.now(ZoneInfo(settings.default_timezone)).date()
 
-    body = await compose_reels_script_for_telegram_user(db, telegram_user_id)
-    from app.services.reels_support import reels_reply_keyboard_markup
+    body = await compose_reels_script_for_telegram_user(db, telegram_user_id, user_topic=topic)
+    await send_telegram_messages_chunked(
+        chat_id,
+        body,
+        reply_markup=reels_reply_keyboard_markup(lang),
+    )
+    db.add(
+        ReelsAgentDailyLog(
+            telegram_user_id=telegram_user_id,
+            delivery_date=delivery_date,
+            source="manual_topic",
+            payload_preview=body[:500],
+        )
+    )
+    db.commit()
 
+
+async def run_reels_manual_delivery(db: Session, telegram_user_id: int, chat_id: int) -> None:
+    """Random internet-seeded script (e.g. /reel_auto or after canceling topic wait)."""
+    settings = get_settings()
+    user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+    lang = user.language if user else "ru"
+    tz_name = (user.timezone if user else None) or settings.default_timezone
+    try:
+        delivery_date = datetime.now(ZoneInfo(tz_name)).date()
+    except Exception:
+        delivery_date = datetime.now(ZoneInfo(settings.default_timezone)).date()
+
+    body = await compose_reels_script_for_telegram_user(db, telegram_user_id, user_topic=None)
     await send_telegram_messages_chunked(
         chat_id,
         body,

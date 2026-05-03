@@ -17,7 +17,7 @@ MESSAGES = {
             "/mood 3 2 — стресс и усталость 0–5 за сегодня\n"
             "/meal — как отправить фото еды\n"
             "/coach — AI-коуч (или /coach ваш вопрос)\n"
-            "/reel — сценарий Reels (если включено на сервере)\n"
+            "/reel — сценарий Reels: сначала опиши тему; /reel_auto — сразу случайная тема из интернета\n"
             "\nПродажи:\n"
             "/weekly /month /plan /risks /actions /ask ВОПРОС\n"
             "\nОбщее: /link CODE, /lang ru|en, /help"
@@ -50,6 +50,14 @@ MESSAGES = {
         "reels_not_allowed": "Команда /reel доступна только для разрешённых аккаунтов.",
         "reels_search_empty": "Не удалось найти достаточно материалов в интернете для сценария. Попробуйте позже.",
         "reels_ai_failed": "Поиск сработал, но не удалось сгенерировать текст. Проверьте ANTHROPIC_API_KEY и попробуйте снова.",
+        "reels_ask_topic": (
+            "Опиши тему рилса или свои наброски (1–3 абзаца): о чём ролик, для кого аудитория, какой тезис "
+            "хочешь проверить или опровергнуть.\n\n"
+            "Я поищу материалы в интернете и соберу сценарий.\n"
+            "Команды: /reel_auto — я сам выберу тему; отмена или cancel — выйти из режима."
+        ),
+        "reels_topic_cancelled": "Ок, режим сценария отменён. Напиши /reel или нажми кнопку, когда снова понадобится.",
+        "reels_topic_too_short": "Напиши чуть подробнее (хотя бы пара предложений с темой и идеей), чтобы я мог искать релевантные источники.",
     },
     "en": {
         "start": (
@@ -69,7 +77,7 @@ MESSAGES = {
             "/mood 3 2 — stress & fatigue 0–5 for today\n"
             "/meal — food photo how-to\n"
             "/coach — AI coach (or /coach your question)\n"
-            "/reel — Reels script (if enabled on server)\n"
+            "/reel — Reels: first describe your topic; /reel_auto — random topic from the web\n"
             "\nSales:\n"
             "/weekly /month /plan /risks /actions /ask QUESTION\n"
             "\nGeneral: /link CODE, /lang ru|en, /help"
@@ -102,6 +110,14 @@ MESSAGES = {
         "reels_not_allowed": "/reel is only available for allowlisted accounts.",
         "reels_search_empty": "Could not gather enough web sources for a script right now. Try again later.",
         "reels_ai_failed": "Search worked but text generation failed. Check ANTHROPIC_API_KEY and retry.",
+        "reels_ask_topic": (
+            "Describe your Reel topic or draft (1–3 short paragraphs): what the video is about, audience, "
+            "which claim you want to fact-check or debunk.\n\n"
+            "I'll search the web and build a script.\n"
+            "Commands: /reel_auto — I pick a topic; cancel — exit this mode."
+        ),
+        "reels_topic_cancelled": "Okay, cancelled. Use /reel or the button when you want a script again.",
+        "reels_topic_too_short": "Please add a bit more detail (at least a couple of sentences) so I can find relevant sources.",
     },
 }
 

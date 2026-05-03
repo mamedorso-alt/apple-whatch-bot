@@ -65,7 +65,7 @@
   - `SCHEDULER_ENABLED=true|false`
   - `SCHEDULER_INTERVAL_MIN=30`
 - Когда включен, backend автоматически вызывает scheduled отправки по интервалу.
-- **Reels-агент** (отдельно): `REELS_AGENT_ENABLED=true`, список получателей `REELS_AGENT_TELEGRAM_USER_IDS` (через запятую, это ваш numeric Telegram user id), время `REELS_AGENT_DAILY_HOUR` / `REELS_AGENT_DAILY_MINUTE`, при необходимости `REELS_AGENT_TIMEZONE`. Нужен `ANTHROPIC_API_KEY`. Раз в сутки на пользователя из списка (в окне времени, как у отчётов) уходит сценарий; дубль автоматической отправки в тот же календарный день не шлётся. Вручную: команда `/reel` или кнопка «🎬 Сценарий рилса» в `/start`/`/help` для allowlist. Подробнее: `docs/REELS_AGENT_TZ.md`.
+- **Reels-агент** (отдельно): `REELS_AGENT_ENABLED=true`, список `REELS_AGENT_TELEGRAM_USER_IDS`, время `REELS_AGENT_DAILY_HOUR` / `REELS_AGENT_DAILY_MINUTE`, при необходимости `REELS_AGENT_TIMEZONE`, окно доставки `REELS_AGENT_SEND_WINDOW_MINUTES` (по умолчанию 120). Нужен `ANTHROPIC_API_KEY`. Планировщик поднимается, если включён **хотя бы один** из: `SCHEDULER_ENABLED` или `REELS_AGENT_ENABLED` — иначе ежедневная автоматическая отправка не работает. Раз в сутки на пользователя из списка уходит **авто**-сценарий (случайная тема из интернета). Вручную: `/reel` или кнопка — сначала бот просит тему/наброски, затем следующее сообщение уходит в поиск; `/reel_auto` — сразу случайная тема. Подробнее: `docs/REELS_AGENT_TZ.md`.
 
 ## Команды (Makefile)
 - `make up` - поднять backend + db

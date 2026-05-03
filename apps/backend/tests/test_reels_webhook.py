@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
+from uuid import uuid4
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.pool import StaticPool
@@ -7,6 +10,7 @@ from sqlalchemy.orm import sessionmaker
 
 from app.core.config import get_settings
 from app.db.base import Base
+from app.db.models import User
 from app.db.session import get_db
 from app.main import app
 
@@ -29,7 +33,7 @@ def _setup_test_db():
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    return engine
+    return testing_session_local
 
 
 def test_webhook_reel_runs_manual_delivery_for_allowlist(monkeypatch):
@@ -43,7 +47,7 @@ def test_webhook_reel_runs_manual_delivery_for_allowlist(monkeypatch):
     async def fake_manual(db, telegram_user_id: int, chat_id: int) -> None:
         calls.append((telegram_user_id, chat_id))
 
-    monkeypatch.setattr("app.api.routes.telegram.run_reels_manual_delivery", fake_manual)
+    monkeypatch.setattr("app.api.routes.telegram.prompt_reels_topic_flow", fake_manual)
 
     settings = get_settings()
     webhook_headers = {}
@@ -72,7 +76,7 @@ def test_webhook_reel_button_text_same_as_manual(monkeypatch):
     async def fake_manual(db, telegram_user_id: int, chat_id: int) -> None:
         calls.append(telegram_user_id)
 
-    monkeypatch.setattr("app.api.routes.telegram.run_reels_manual_delivery", fake_manual)
+    monkeypatch.setattr("app.api.routes.telegram.prompt_reels_topic_flow", fake_manual)
 
     settings = get_settings()
     webhook_headers = {}
@@ -153,4 +157,82 @@ def test_webhook_start_includes_reels_keyboard_for_allowlist(monkeypatch):
     assert r.status_code == 200
     assert markups and markups[0] and "keyboard" in markups[0]
     assert "🎬" in markups[0]["keyboard"][0][0]["text"]
+    get_settings.cache_clear()
+
+
+def test_webhook_reel_auto_calls_random_delivery(monkeypatch):
+    _setup_test_db()
+    monkeypatch.setenv("REELS_AGENT_ENABLED", "true")
+    monkeypatch.setenv("REELS_AGENT_TELEGRAM_USER_IDS", "777")
+    get_settings.cache_clear()
+
+    calls: list[tuple[int, int]] = []
+
+    async def fake_manual(db, telegram_user_id: int, chat_id: int) -> None:
+        calls.append((telegram_user_id, chat_id))
+
+    monkeypatch.setattr("app.api.routes.telegram.run_reels_manual_delivery", fake_manual)
+
+    settings = get_settings()
+    webhook_headers = {}
+    if settings.telegram_webhook_secret:
+        webhook_headers["X-Telegram-Bot-Api-Secret-Token"] = settings.telegram_webhook_secret
+
+    client = TestClient(app)
+    r = client.post(
+        "/v1/telegram/webhook",
+        json={"message": {"text": "/reel_auto", "chat": {"id": 777}, "from": {"id": 777}}},
+        headers=webhook_headers,
+    )
+    assert r.status_code == 200
+    assert calls == [(777, 777)]
+    get_settings.cache_clear()
+
+
+def test_webhook_reel_free_text_after_awaiting_triggers_topic_delivery(monkeypatch):
+    SessionLocal = _setup_test_db()
+    monkeypatch.setenv("REELS_AGENT_ENABLED", "true")
+    monkeypatch.setenv("REELS_AGENT_TELEGRAM_USER_IDS", "777")
+    get_settings.cache_clear()
+
+    db = SessionLocal()
+    uid = uuid4()
+    db.add(
+        User(
+            id=uid,
+            created_at=datetime.now(timezone.utc),
+            timezone="UTC",
+            language="ru",
+            telegram_user_id=777,
+            is_linked=True,
+            api_token_hash="x" * 64,
+            reels_awaiting_custom_topic=True,
+        )
+    )
+    db.commit()
+    db.close()
+
+    calls: list[tuple[int, str]] = []
+
+    async def fake_topic(db, telegram_user_id: int, chat_id: int, topic: str) -> None:
+        calls.append((telegram_user_id, topic[:40]))
+
+    monkeypatch.setattr("app.api.routes.telegram.run_reels_manual_with_user_topic", fake_topic)
+
+    settings = get_settings()
+    webhook_headers = {}
+    if settings.telegram_webhook_secret:
+        webhook_headers["X-Telegram-Bot-Api-Secret-Token"] = settings.telegram_webhook_secret
+
+    client = TestClient(app)
+    topic = "Хочу рилс про то что многозадачность всегда повышает продуктивность — разобрать миф."
+    r = client.post(
+        "/v1/telegram/webhook",
+        json={"message": {"text": topic, "chat": {"id": 777}, "from": {"id": 777}}},
+        headers=webhook_headers,
+    )
+    assert r.status_code == 200
+    assert len(calls) == 1
+    assert calls[0][0] == 777
+    assert "многозадачность" in calls[0][1]
     get_settings.cache_clear()

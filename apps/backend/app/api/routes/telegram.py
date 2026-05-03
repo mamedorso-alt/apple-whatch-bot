@@ -12,7 +12,11 @@ from app.db.session import get_db
 from app.i18n.telegram import msg
 from app.schemas.link import LinkCodeResponse
 from app.services.linking import generate_link_code
-from app.services.reels_schedule import run_reels_manual_delivery
+from app.services.reels_schedule import (
+    prompt_reels_topic_flow,
+    run_reels_manual_delivery,
+    run_reels_manual_with_user_topic,
+)
 from app.services.reels_support import REELS_TRIGGER_TEXTS, is_reels_allowlisted, reels_reply_keyboard_markup
 from app.services.telegram import (
     build_command_reply_async,
@@ -102,6 +106,62 @@ async def telegram_webhook(
         user_lang = language_for_telegram(db, telegram_user_id)
         ts = text.strip()
         ts_low = ts.lower()
+        user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
+
+        # /reel_auto — random topic immediately (also clears "waiting for topic" mode)
+        if ts == "/reel_auto":
+            if not cfg.reels_agent_enabled:
+                await send_telegram_message(chat_id=chat_id, text=msg(user_lang, "reels_disabled"))
+                return {"status": "ok"}
+            if not is_reels_allowlisted(telegram_user_id):
+                await send_telegram_message(chat_id=chat_id, text=msg(user_lang, "reels_not_allowed"))
+                return {"status": "ok"}
+            if user and user.reels_awaiting_custom_topic:
+                user.reels_awaiting_custom_topic = False
+                db.commit()
+            try:
+                await run_reels_manual_delivery(db, telegram_user_id, chat_id)
+            except Exception:
+                logger.exception("reels auto delivery failed")
+                await send_telegram_message(
+                    chat_id=chat_id,
+                    text=msg(user_lang, "generic_processing_error"),
+                )
+            return {"status": "ok"}
+
+        reels_ok = cfg.reels_agent_enabled and is_reels_allowlisted(telegram_user_id)
+        if reels_ok and user and user.reels_awaiting_custom_topic:
+            if ts_low in ("отмена", "cancel", "/cancel"):
+                user.reels_awaiting_custom_topic = False
+                db.commit()
+                await send_telegram_message(
+                    chat_id=chat_id,
+                    text=msg(user_lang, "reels_topic_cancelled"),
+                    reply_markup=reels_reply_keyboard_markup(user_lang),
+                )
+                return {"status": "ok"}
+            if not ts.startswith("/"):
+                if len(ts) < 12:
+                    await send_telegram_message(
+                        chat_id=chat_id,
+                        text=msg(user_lang, "reels_topic_too_short"),
+                        reply_markup=reels_reply_keyboard_markup(user_lang),
+                    )
+                    return {"status": "ok"}
+                user.reels_awaiting_custom_topic = False
+                db.commit()
+                try:
+                    await run_reels_manual_with_user_topic(db, telegram_user_id, chat_id, ts)
+                except Exception:
+                    logger.exception("reels manual topic delivery failed")
+                    await send_telegram_message(
+                        chat_id=chat_id,
+                        text=msg(user_lang, "generic_processing_error"),
+                    )
+                return {"status": "ok"}
+            user.reels_awaiting_custom_topic = False
+            db.commit()
+
         is_reel_cmd = ts == "/reel" or ts in REELS_TRIGGER_TEXTS
         if is_reel_cmd:
             if not cfg.reels_agent_enabled:
@@ -111,9 +171,9 @@ async def telegram_webhook(
                 await send_telegram_message(chat_id=chat_id, text=msg(user_lang, "reels_not_allowed"))
                 return {"status": "ok"}
             try:
-                await run_reels_manual_delivery(db, telegram_user_id, chat_id)
+                await prompt_reels_topic_flow(db, telegram_user_id, chat_id)
             except Exception:
-                logger.exception("reels manual delivery failed")
+                logger.exception("reels topic prompt failed")
                 await send_telegram_message(
                     chat_id=chat_id,
                     text=msg(user_lang, "generic_processing_error"),

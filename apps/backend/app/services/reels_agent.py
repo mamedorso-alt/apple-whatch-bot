@@ -16,7 +16,6 @@ from app.services.agent_usage import record_agent_usage
 from app.services.ai_coach import _anthropic_usage, _clean_generated_text
 
 logger = logging.getLogger(__name__)
-settings = get_settings()
 
 MYTH_SEEDS_RU = [
     "миф многозадачность продуктивность исследования",
@@ -84,12 +83,89 @@ def _search_ddgs(queries: list[str], max_per_query: int = 6) -> list[dict[str, s
     return collected[:22]
 
 
+def _gather_merged_for_seed(primary_q: str, lang: str) -> list[dict[str, str]]:
+    primary_hits = _search_ddgs([primary_q], 7)
+    if not primary_hits:
+        return []
+
+    anchor = primary_hits[0]
+    anchor_title = anchor.get("title") or (anchor.get("body") or "")[:120] or primary_q
+    if lang == "en":
+        followups = [
+            f"{anchor_title} debunk evidence study",
+            f"{anchor_title} research meta-analysis criticism",
+        ]
+        evidence_qs = [
+            f"{anchor_title} peer-reviewed systematic review evidence",
+            f"{primary_q} fact check debunk",
+        ]
+    else:
+        followups = [
+            f"{anchor_title} опровержение исследование",
+            f"{anchor_title} миф научные данные",
+        ]
+        evidence_qs = [
+            f"{anchor_title} научные исследования метаанализ обзор",
+            f"{primary_q} опровержение фактчек",
+        ]
+
+    secondary = _search_ddgs(followups, 6)
+    tertiary = _search_ddgs(evidence_qs, 6)
+    by_href: dict[str, dict[str, str]] = {}
+    for item in primary_hits + secondary + tertiary:
+        h = item.get("href")
+        if h and h not in by_href:
+            by_href[h] = item
+    return list(by_href.values())[:20]
+
+
+def _gather_merged_for_user_hint(hint: str, lang: str) -> list[dict[str, str]]:
+    hint_q = hint.strip()[:500]
+    if lang == "en":
+        queries = [
+            hint_q,
+            f"{hint_q} debunk fact check evidence",
+            f"{hint_q} research criticism psychology business",
+        ]
+    else:
+        queries = [
+            hint_q,
+            f"{hint_q} опровержение фактчек",
+            f"{hint_q} исследование критика мнение экспертов",
+        ]
+    primary_hits = _search_ddgs(queries, 7)
+    if not primary_hits:
+        return []
+
+    anchor = primary_hits[0]
+    anchor_title = anchor.get("title") or (anchor.get("body") or "")[:120] or hint_q
+    if lang == "en":
+        followups = [
+            f"{anchor_title} evidence study",
+            f"{hint_q} why disputed",
+        ]
+    else:
+        followups = [
+            f"{anchor_title} доказательства исследование",
+            f"{hint_q} спорная тема",
+        ]
+    secondary = _search_ddgs(followups, 6)
+    by_href: dict[str, dict[str, str]] = {}
+    for item in primary_hits + secondary:
+        h = item.get("href")
+        if h and h not in by_href:
+            by_href[h] = item
+    return list(by_href.values())[:20]
+
+
 async def _generate_reels_with_anthropic(
     lang: str,
     search_payload: list[dict[str, str]],
     *,
     user_id: UUID | None = None,
+    creator_brief: str | None = None,
 ) -> str:
+    settings = get_settings()
     if not settings.anthropic_api_key:
         raise RuntimeError("Anthropic API key is not configured")
 
@@ -123,6 +199,12 @@ async def _generate_reels_with_anthropic(
         f"Allowed URL list (you may only cite these): {json.dumps(allowed_urls, ensure_ascii=False)}\n"
         f"Search JSON:\n{json.dumps(search_payload, ensure_ascii=False)}"
     )
+    if creator_brief:
+        user_prompt += (
+            "\n\nCreator direction (use only as angle and framing; every factual claim must still be "
+            "supported by the search JSON above, not invented):\n"
+            f"{creator_brief}"
+        )
 
     timeout = max(30, int(settings.reels_agent_anthropic_timeout_sec))
     async with httpx.AsyncClient(timeout=timeout) as client:
@@ -164,56 +246,49 @@ async def compose_reels_script(
     lang: str,
     *,
     user_id: UUID | None = None,
+    user_topic_hint: str | None = None,
 ) -> str:
+    hint = (user_topic_hint or "").strip()
+    if hint:
+        hint = hint[:3500]
+        merged: list[dict[str, str]] = []
+        for attempt in range(3):
+            merged = await asyncio.to_thread(_gather_merged_for_user_hint, hint, lang)
+            if len(merged) >= 2:
+                break
+            await asyncio.sleep(0.5)
+        if len(merged) < 2:
+            return msg(lang, "reels_search_empty")
+        try:
+            return await _generate_reels_with_anthropic(
+                lang, merged, user_id=user_id, creator_brief=hint
+            )
+        except Exception:
+            logger.exception("reels anthropic failed")
+            return msg(lang, "reels_ai_failed")
+
     seeds = MYTH_SEEDS_EN if lang == "en" else MYTH_SEEDS_RU
-    primary_q = random.choice(seeds)
-    primary_hits = await asyncio.to_thread(_search_ddgs, [primary_q], 7)
-    if not primary_hits:
-        return msg(lang, "reels_search_empty")
-
-    anchor = primary_hits[0]
-    anchor_title = anchor.get("title") or anchor.get("body")[:120] or primary_q
-    if lang == "en":
-        followups = [
-            f"{anchor_title} debunk evidence study",
-            f"{anchor_title} research meta-analysis criticism",
-        ]
-    else:
-        followups = [
-            f"{anchor_title} опровержение исследование",
-            f"{anchor_title} миф научные данные",
-        ]
-
-    secondary = await asyncio.to_thread(_search_ddgs, followups, 6)
-    if lang == "en":
-        evidence_qs = [
-            f"{anchor_title} peer-reviewed systematic review evidence",
-            f"{primary_q} fact check debunk",
-        ]
-    else:
-        evidence_qs = [
-            f"{anchor_title} научные исследования метаанализ обзор",
-            f"{primary_q} опровержение фактчек",
-        ]
-    tertiary = await asyncio.to_thread(_search_ddgs, evidence_qs, 6)
-    by_href: dict[str, dict[str, str]] = {}
-    for item in primary_hits + secondary + tertiary:
-        h = item.get("href")
-        if h and h not in by_href:
-            by_href[h] = item
-    merged = list(by_href.values())[:20]
+    merged = []
+    for _attempt in range(4):
+        primary_q = random.choice(seeds)
+        merged = await asyncio.to_thread(_gather_merged_for_seed, primary_q, lang)
+        if len(merged) >= 3:
+            break
+        await asyncio.sleep(0.45)
     if len(merged) < 3:
         return msg(lang, "reels_search_empty")
 
     try:
-        return await _generate_reels_with_anthropic(lang, merged, user_id=user_id)
+        return await _generate_reels_with_anthropic(lang, merged, user_id=user_id, creator_brief=None)
     except Exception:
         logger.exception("reels anthropic failed")
         return msg(lang, "reels_ai_failed")
 
 
-async def compose_reels_script_for_telegram_user(db: Session, telegram_user_id: int) -> str:
+async def compose_reels_script_for_telegram_user(
+    db: Session, telegram_user_id: int, user_topic: str | None = None
+) -> str:
     user = db.query(User).filter(User.telegram_user_id == telegram_user_id).first()
     lang = user.language if user else "ru"
     uid = user.id if user else None
-    return await compose_reels_script(lang, user_id=uid)
+    return await compose_reels_script(lang, user_id=uid, user_topic_hint=user_topic)
