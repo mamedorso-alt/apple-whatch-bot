@@ -48,7 +48,7 @@ MYTH_SEEDS_EN = [
 ]
 
 
-def _search_ddgs(queries: list[str], max_per_query: int = 6) -> list[dict[str, str]]:
+def _search_ddgs(queries: list[str], max_per_query: int = 8) -> list[dict[str, str]]:
     try:
         from duckduckgo_search import DDGS
     except ImportError:
@@ -81,6 +81,63 @@ def _search_ddgs(queries: list[str], max_per_query: int = 6) -> list[dict[str, s
             if len(collected) >= 22:
                 break
     return collected[:22]
+
+
+def _first_sentence_chunk(text: str, max_len: int = 160) -> str:
+    """Take first sentence or a compact prefix — long monologue paragraphs are bad DDG queries."""
+    t = " ".join((text or "").split())
+    if not t:
+        return ""
+    for sep in ".!?":
+        pos = t.find(sep)
+        if 10 <= pos <= 400:
+            return t[: pos + 1].strip()[:max_len]
+    return t[:max_len].strip()
+
+
+def _search_queries_from_user_hint(hint: str, lang: str) -> list[str]:
+    """Build several short web queries from a long user draft (DDG works poorly on full paragraphs)."""
+    raw = " ".join((hint or "").split())
+    core = _first_sentence_chunk(raw, 200)
+    short = core[:95].strip() if core else raw[:95].strip()
+    out: list[str] = []
+    seen: set[str] = set()
+
+    def add(q: str) -> None:
+        q = (q or "").strip()
+        if len(q) < 6 or q in seen:
+            return
+        seen.add(q)
+        out.append(q)
+
+    low = raw.lower()
+    if lang == "en":
+        add(short)
+        add(f"{short} wikipedia")
+        add(f"{short} history OR origin")
+        add(f"{short} myth OR debunk OR evidence")
+        if "burnout" in low:
+            add("burnout term history Freudenberger")
+            add("burnout epidemic criticism psychology")
+        if "german" in low or "psychiat" in low:
+            add("burnout coined when psychiatry history")
+    else:
+        add(short)
+        add(f"{short} википедия")
+        add(f"{short} история термина")
+        add(f"{short} миф правда факты")
+        if "выгоран" in low:
+            add("выгорание история термина психология")
+            add("эмоциональное выгорание кто ввёл термин")
+            add("Freudenberger выгорание")
+            add("профессиональное выгорание история понятия")
+        if "немец" in low or "психиатр" in low or "придуман" in low:
+            add("история термина выгорание психиатр")
+        # Extra English hits often help for names / science
+        if "выгоран" in low or "немец" in low:
+            add("burnout term origin history psychiatry")
+
+    return out[:14]
 
 
 def _gather_merged_for_seed(primary_q: str, lang: str) -> list[dict[str, str]]:
@@ -120,42 +177,40 @@ def _gather_merged_for_seed(primary_q: str, lang: str) -> list[dict[str, str]]:
 
 
 def _gather_merged_for_user_hint(hint: str, lang: str) -> list[dict[str, str]]:
-    hint_q = hint.strip()[:500]
-    if lang == "en":
-        queries = [
-            hint_q,
-            f"{hint_q} debunk fact check evidence",
-            f"{hint_q} research criticism psychology business",
-        ]
-    else:
-        queries = [
-            hint_q,
-            f"{hint_q} опровержение фактчек",
-            f"{hint_q} исследование критика мнение экспертов",
-        ]
-    primary_hits = _search_ddgs(queries, 7)
+    queries = _search_queries_from_user_hint(hint, lang)
+    if not queries:
+        queries = [_first_sentence_chunk(hint, 120) or hint[:120]]
+
+    primary_hits = _search_ddgs(queries, 8)
     if not primary_hits:
         return []
 
     anchor = primary_hits[0]
-    anchor_title = anchor.get("title") or (anchor.get("body") or "")[:120] or hint_q
+    anchor_title = anchor.get("title") or (anchor.get("body") or "")[:120] or queries[0]
+    short_seed = queries[0][:80] if queries else hint[:80]
     if lang == "en":
         followups = [
             f"{anchor_title} evidence study",
-            f"{hint_q} why disputed",
+            f"{short_seed} criticism debate",
+            "workplace stress history before burnout term",
         ]
     else:
         followups = [
-            f"{anchor_title} доказательства исследование",
-            f"{hint_q} спорная тема",
+            f"{anchor_title} исследование факты",
+            f"{short_seed} критика мнения экспертов",
+            "стресс на работе история до термина выгорание",
         ]
-    secondary = _search_ddgs(followups, 6)
+    tertiary = [
+        f"{anchor_title} Wikipedia" if lang == "en" else f"{anchor_title} википедия",
+    ]
+    secondary = _search_ddgs(followups, 8)
+    extra = _search_ddgs(tertiary, 6)
     by_href: dict[str, dict[str, str]] = {}
-    for item in primary_hits + secondary:
+    for item in primary_hits + secondary + extra:
         h = item.get("href")
         if h and h not in by_href:
             by_href[h] = item
-    return list(by_href.values())[:20]
+    return list(by_href.values())[:22]
 
 
 async def _generate_reels_with_anthropic(
@@ -252,16 +307,25 @@ async def compose_reels_script(
     if hint:
         hint = hint[:3500]
         merged: list[dict[str, str]] = []
-        for attempt in range(3):
+        for attempt in range(4):
             merged = await asyncio.to_thread(_gather_merged_for_user_hint, hint, lang)
-            if len(merged) >= 2:
+            # User drafts: DDG is noisy; allow 1+ URLs — model must stay conservative in claims.
+            if len(merged) >= 1:
                 break
-            await asyncio.sleep(0.5)
-        if len(merged) < 2:
+            await asyncio.sleep(0.55)
+        if len(merged) < 1:
             return msg(lang, "reels_search_empty")
+        brief = hint
+        if len(merged) == 1:
+            brief = (
+                f"{hint}\n\n[Сервис: найден только один URL в выдаче — формулируй осторожно, не раздувай факты "
+                "за пределы сниппета, в блоке источников — только эта ссылка.]"
+                if lang != "en"
+                else f"{hint}\n\n[Service: only one search URL — stay cautious; Sources section may list only that URL.]"
+            )
         try:
             return await _generate_reels_with_anthropic(
-                lang, merged, user_id=user_id, creator_brief=hint
+                lang, merged, user_id=user_id, creator_brief=brief
             )
         except Exception:
             logger.exception("reels anthropic failed")
